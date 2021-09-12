@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Web.HostedServices;
+using Web.HostedServices.Interfaces;
 
 namespace Web.NodeOne
 {
@@ -17,9 +18,6 @@ namespace Web.NodeOne
 				.ConfigureWebHostDefaults(webBuilder =>
 				{
 					webBuilder.UseStartup<Startup>();
-				})
-				.ConfigureServices(services => {
-					services.AddHostedService<WebSocketClientService>();
-				});
+				});				
 	}
 }

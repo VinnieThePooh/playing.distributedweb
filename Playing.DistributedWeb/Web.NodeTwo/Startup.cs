@@ -34,6 +34,12 @@ namespace Web.NodeTwo
 		{
 			var webSocketOptions = Configuration.GetSection("WebSocketServer").Get<WebSocketServerOptions>();
 
+			//todo: add other options from config
+			var socketOptions = new WebSocketOptions()
+			{
+				KeepAliveInterval = TimeSpan.FromSeconds(webSocketOptions.KeepAliveInterval),				
+			};
+
 			app.UseWebSockets();
 
 			if (env.IsDevelopment())
@@ -49,9 +55,10 @@ namespace Web.NodeTwo
 				endpoints.MapControllers();
 			});
 
-			// /ws - default path
-			var socketPath = !string.IsNullOrEmpty(webSocketOptions?.SocketPath) ? webSocketOptions.SocketPath : "/ws";
+			// /wss - default path
+			var socketPath = !string.IsNullOrEmpty(webSocketOptions?.SocketPath) ? webSocketOptions.SocketPath : "/wss";
 			
+			//todo: move to a controller with a static route
 			app.Use(async (context, next) => {
 
 				if (context.Request.Path != socketPath)

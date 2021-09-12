@@ -7,6 +7,7 @@ using Web.MessagingModels;
 using Web.MessagingModels.Options;
 using System.Net.WebSockets;
 using Web.HostedServices.Interfaces;
+using System.Diagnostics;
 
 namespace Web.HostedServices
 {
@@ -20,6 +21,7 @@ namespace Web.HostedServices
 		public WebSocketClientService(IOptions<MessagingOptions> options, IOptions<WebSocketConnectionOptions> connectionOptions)
 		{
 			MessagingOptions = options.Value;
+			ConnectionOptions = connectionOptions.Value;
 		}
 
 		public MessagingOptions MessagingOptions { get; private set; }
@@ -32,7 +34,7 @@ namespace Web.HostedServices
 		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 		{
 			await Task.Yield();
-			
+
 			while (!stoppingToken.IsCancellationRequested)
 			{
 				try
@@ -48,9 +50,16 @@ namespace Web.HostedServices
 				{
 					//do nothing
 				}
+				catch (WebSocketException wse)
+				{
+					//todo: handle this					
+					//retry
+					//do log here						
+				}
 				catch (Exception e)
 				{
-					//do log here						
+					//todo: 
+					//do log here
 				}
 			}
 		}
@@ -92,7 +101,7 @@ namespace Web.HostedServices
 			while (true)
 			{
 				stopMessagingToken.ThrowIfCancellationRequested();
-
+				Debug.WriteLine($"[{DateTime.Now}]: I do messaging");
 				// main work is gonna be done here
 			}
 		}
@@ -103,7 +112,7 @@ namespace Web.HostedServices
 		{
 			if (_clientWebSocket == null)
 			{
-				_clientWebSocket = new ClientWebSocket();
+				_clientWebSocket = new ClientWebSocket();				
 				await _clientWebSocket.ConnectAsync(new Uri(ConnectionOptions.SocketUrl), stopMessagingToken);
 				int k = 0;
 			}

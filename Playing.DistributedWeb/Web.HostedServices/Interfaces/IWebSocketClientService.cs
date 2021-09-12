@@ -1,9 +1,10 @@
-﻿using System.Threading.Tasks;
+﻿using Microsoft.Extensions.Hosting;
+using System.Threading.Tasks;
 using Web.MessagingModels.Options;
 
 namespace Web.HostedServices.Interfaces
 {
-	public interface IWebSocketClientService
+	public interface IWebSocketClientService: IHostedService
 	{
 		Task<bool> StartMessaging();
 		Task<bool> StopMessaging();

@@ -22,8 +22,9 @@ namespace Web.NodeOne.Controllers
 		[HttpGet("start")]		
 		public async Task<IActionResult> StartMessaging()
 		{
+			//todo: return Ok only after successful connect or after continuing sending
 			if (!await _webSocketClient.StartMessaging())
-				return BadRequest("WebSocketClientService is already busy now");			
+				return BadRequest("WebSocketClientService is already busy now");
 
 			return Ok("Messaging started");
 		}

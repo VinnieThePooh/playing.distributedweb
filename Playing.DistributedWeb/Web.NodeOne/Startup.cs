@@ -27,9 +27,7 @@ namespace Web.NodeOne
 			services.Configure<WebSocketConnectionOptions>(Configuration.GetSection("Messaging:Nodes:WebSocket"));
 
 			services.AddSingleton<IWebSocketClientService, WebSocketClientService>();
-
-			//services.AddSingleton<IHostedService>(p => p.GetService<WebSocketClientService>());
-
+			services.AddSingleton<IHostedService>(p => p.GetService<IWebSocketClientService>());
 			services.AddControllers();
 			services.AddSwaggerGen(c =>
 			{
