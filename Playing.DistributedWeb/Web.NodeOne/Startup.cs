@@ -22,11 +22,12 @@ namespace Web.NodeOne
 
 		// This method gets called by the runtime. Use this method to add services to the container.
 		public void ConfigureServices(IServiceCollection services)
-		{
-			services.AddHostedService<WebSocketClientService>();
+		{			
 			services.Configure<MessagingOptions>(Configuration.GetSection("Messaging"));
 			services.Configure<WebSocketConnectionOptions>(Configuration.GetSection("Messaging:Nodes:WebSocket"));
+
 			services.AddSingleton<IWebSocketClientService, WebSocketClientService>();
+
 			//services.AddSingleton<IHostedService>(p => p.GetService<WebSocketClientService>());
 
 			services.AddControllers();

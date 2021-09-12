@@ -32,12 +32,13 @@ namespace Web.HostedServices
 		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 		{
 			await Task.Yield();
-
-			while (stoppingToken.IsCancellationRequested)
+			
+			while (!stoppingToken.IsCancellationRequested)
 			{
 				try
 				{
 					_manualReset.WaitOne();
+					await EnsureSocketInitialized(_stoppingMessagingCts.Token);
 					await StartMessagingSession(_stoppingMessagingCts.Token);
 
 					if (MessagingOptions.PauseBettweenMessages > 0)
@@ -93,11 +94,20 @@ namespace Web.HostedServices
 				stopMessagingToken.ThrowIfCancellationRequested();
 
 				// main work is gonna be done here
-
 			}
 		}
 
-
+		//todo: add network problems handling (retry)
+		//dispose and recreate socket or keep connection opened?
+		private async Task EnsureSocketInitialized(CancellationToken stopMessagingToken)
+		{
+			if (_clientWebSocket == null)
+			{
+				_clientWebSocket = new ClientWebSocket();
+				await _clientWebSocket.ConnectAsync(new Uri(ConnectionOptions.SocketUrl), stopMessagingToken);
+				int k = 0;
+			}
+		}
 
 		private Task SendMessage(SampleMessage message)
 		{

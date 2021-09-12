@@ -26,25 +26,19 @@ namespace Web.NodeTwo
 		// This method gets called by the runtime. Use this method to add services to the container.
 		public void ConfigureServices(IServiceCollection services)
 		{			
-			services.AddControllers();
-			services.AddSwaggerGen(c =>
-			{
-				c.SwaggerDoc("v1", new OpenApiInfo { Title = "Web.NodeTwo", Version = "v1" });
-			});
+			services.AddControllers();			
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
 		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 		{
-			var webSocketOptions = Configuration.GetSection("WebSocketServer").Get<WebSocketServerOptions>();		
+			var webSocketOptions = Configuration.GetSection("WebSocketServer").Get<WebSocketServerOptions>();
 
 			app.UseWebSockets();
 
 			if (env.IsDevelopment())
 			{
-				app.UseDeveloperExceptionPage();
-				app.UseSwagger();
-				app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Web.NodeTwo v1"));
+				app.UseDeveloperExceptionPage();				
 			}
 
 			app.UseHttpsRedirection();
@@ -61,7 +55,10 @@ namespace Web.NodeTwo
 			app.Use(async (context, next) => {
 
 				if (context.Request.Path != socketPath)
+				{
 					await next();
+					return;
+				}
 
 				if (!context.WebSockets.IsWebSocketRequest)
 					context.Response.StatusCode = StatusCodes.Status400BadRequest;
@@ -84,8 +81,11 @@ namespace Web.NodeTwo
 				bytes.AddRange(buffer);
 
 			while (!result.CloseStatus.HasValue)
-			{   
-				result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+			{
+				var arraySegment = new ArraySegment<byte>(buffer);
+				result = await webSocket.ReceiveAsync(arraySegment, CancellationToken.None);
+				Console.WriteLine($"Received data, bytes count: {arraySegment.Count}");
+				Console.WriteLine($"End of message: {result.EndOfMessage}");
 				bytes.AddRange(buffer);
 			}
 
