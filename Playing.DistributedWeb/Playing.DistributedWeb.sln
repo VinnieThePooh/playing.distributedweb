@@ -3,18 +3,20 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31613.86
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.NodeOne", "Web.NodeOne\Web.NodeOne.csproj", "{CF0639C1-CEEA-4041-A29A-0AEF9850516D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Web.NodeOne", "Web.NodeOne\Web.NodeOne.csproj", "{CF0639C1-CEEA-4041-A29A-0AEF9850516D}"
 	ProjectSection(ProjectDependencies) = postProject
 		{CA37546A-F1DF-4EA8-A159-BF13AA78205D} = {CA37546A-F1DF-4EA8-A159-BF13AA78205D}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.NodeTwo", "Web.NodeTwo\Web.NodeTwo.csproj", "{CA37546A-F1DF-4EA8-A159-BF13AA78205D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Web.NodeTwo", "Web.NodeTwo\Web.NodeTwo.csproj", "{CA37546A-F1DF-4EA8-A159-BF13AA78205D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.NodeThree", "Web.NodeThree\Web.NodeThree.csproj", "{BA30E696-5163-429F-B005-C5E93984604C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Web.NodeThree", "Web.NodeThree\Web.NodeThree.csproj", "{BA30E696-5163-429F-B005-C5E93984604C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.MessagingModels", "Web.MessagingModels\Web.MessagingModels.csproj", "{70D4289D-B26F-45C4-8FF5-4A4BA4C47567}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Web.MessagingModels", "Web.MessagingModels\Web.MessagingModels.csproj", "{70D4289D-B26F-45C4-8FF5-4A4BA4C47567}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.HostedServices", "Web.HostedServices\Web.HostedServices.csproj", "{98518635-D1B9-45D6-981C-F982B333C08C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Web.HostedServices", "Web.HostedServices\Web.HostedServices.csproj", "{98518635-D1B9-45D6-981C-F982B333C08C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.DataAccess", "Web.DataAccess\Web.DataAccess.csproj", "{7B392C94-38FE-415F-9434-F7E9968F9FEA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -42,6 +44,10 @@ Global
 		{98518635-D1B9-45D6-981C-F982B333C08C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{98518635-D1B9-45D6-981C-F982B333C08C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{98518635-D1B9-45D6-981C-F982B333C08C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B392C94-38FE-415F-9434-F7E9968F9FEA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B392C94-38FE-415F-9434-F7E9968F9FEA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B392C94-38FE-415F-9434-F7E9968F9FEA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B392C94-38FE-415F-9434-F7E9968F9FEA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
