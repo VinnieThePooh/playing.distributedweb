@@ -6,10 +6,11 @@ using System.Threading.Tasks;
 using Web.MessagingModels;
 using Web.MessagingModels.Options;
 using System.Net.WebSockets;
+using Web.HostedServices.Interfaces;
 
 namespace Web.HostedServices
 {
-	public class WebSocketClientService : BackgroundService
+	public class WebSocketClientService : BackgroundService, IWebSocketClientService
 	{
 		private static Random _random = new Random();
 		private ClientWebSocket _clientWebSocket;
@@ -58,6 +59,7 @@ namespace Web.HostedServices
 			var workingTask = Task.Run(() => DoMessaging(stopMessagingToken), stopMessagingToken);
 			await Task.Delay(MessagingOptions.Duration * 1000);
 			await StopMessaging();
+			await workingTask;
 		}
 
 
@@ -88,9 +90,10 @@ namespace Web.HostedServices
 		{
 			while (true)
 			{
+				stopMessagingToken.ThrowIfCancellationRequested();
+
 				// main work is gonna be done here
 
-				stopMessagingToken.ThrowIfCancellationRequested();
 			}
 		}
 

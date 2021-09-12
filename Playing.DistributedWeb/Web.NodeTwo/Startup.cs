@@ -6,6 +6,11 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Web.MessagingModels.Options;
 using Microsoft.AspNetCore.Http;
+using System.Net.WebSockets;
+using System.Threading;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Web.NodeTwo
 {
@@ -20,7 +25,7 @@ namespace Web.NodeTwo
 
 		// This method gets called by the runtime. Use this method to add services to the container.
 		public void ConfigureServices(IServiceCollection services)
-		{
+		{			
 			services.AddControllers();
 			services.AddSwaggerGen(c =>
 			{
@@ -52,7 +57,7 @@ namespace Web.NodeTwo
 
 			// /ws - default path
 			var socketPath = !string.IsNullOrEmpty(webSocketOptions?.SocketPath) ? webSocketOptions.SocketPath : "/ws";
-
+			
 			app.Use(async (context, next) => {
 
 				if (context.Request.Path != socketPath)
@@ -60,13 +65,31 @@ namespace Web.NodeTwo
 
 				if (!context.WebSockets.IsWebSocketRequest)
 					context.Response.StatusCode = StatusCodes.Status400BadRequest;
-
-				//payload logic here
-				// or may be use signalR?
+							
+				using (WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync())
 				{
-					
-				}
+					await HandleWebSocketDataDemo(context, webSocket);
+				}				
 			});
+		}
+		
+		private async Task HandleWebSocketDataDemo(HttpContext context, WebSocket webSocket)
+		{
+			var buffer = new byte[1024 * 4];
+			WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+
+			var bytes = new List<byte>();
+
+			if (!result.CloseStatus.HasValue)
+				bytes.AddRange(buffer);
+
+			while (!result.CloseStatus.HasValue)
+			{   
+				result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+				bytes.AddRange(buffer);
+			}
+
+			await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
 		}
 	}
 }

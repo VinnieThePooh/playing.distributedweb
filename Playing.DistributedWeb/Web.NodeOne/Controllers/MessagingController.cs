@@ -1,21 +1,30 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
+using Web.HostedServices;
+using Web.HostedServices.Interfaces;
 
 namespace Web.NodeOne.Controllers
 {
 	[Route("/")]
 	[ApiController]
 	public class MessagingController : ControllerBase
-	{		
+	{
+		private readonly IWebSocketClientService _webSocketClient;
+
+		public MessagingController(IWebSocketClientService webSocketClient)
+		{
+			_webSocketClient = webSocketClient;
+		}
+
 		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		[HttpGet("start")]		
-		public IActionResult StartMessaging()
+		public async Task<IActionResult> StartMessaging()
 		{
+			if (!await _webSocketClient.StartMessaging())
+				return BadRequest("WebSocketClientService is already busy now");			
+
 			return Ok("Messaging started");
 		}
 
@@ -23,8 +32,11 @@ namespace Web.NodeOne.Controllers
 		[HttpGet("stop")]
 		[ProducesResponseType(StatusCodes.Status200OK)]
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
-		public IActionResult StopMessaging()
+		public async Task<IActionResult> StopMessaging()
 		{
+			if (!await _webSocketClient.StopMessaging())
+				return BadRequest("WebSocketClientService is already stopped");
+
 			return Ok("Messaging stopped");
 		}
 	}

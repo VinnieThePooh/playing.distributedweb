@@ -4,6 +4,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
+using Web.HostedServices;
+using Web.HostedServices.Interfaces;
 using Web.MessagingModels.Options;
 
 
@@ -21,8 +23,11 @@ namespace Web.NodeOne
 		// This method gets called by the runtime. Use this method to add services to the container.
 		public void ConfigureServices(IServiceCollection services)
 		{
+			services.AddHostedService<WebSocketClientService>();
 			services.Configure<MessagingOptions>(Configuration.GetSection("Messaging"));
 			services.Configure<WebSocketConnectionOptions>(Configuration.GetSection("Messaging:Nodes:WebSocket"));
+			services.AddSingleton<IWebSocketClientService, WebSocketClientService>();
+			//services.AddSingleton<IHostedService>(p => p.GetService<WebSocketClientService>());
 
 			services.AddControllers();
 			services.AddSwaggerGen(c =>
