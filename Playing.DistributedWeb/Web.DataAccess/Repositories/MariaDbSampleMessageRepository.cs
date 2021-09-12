@@ -5,9 +5,10 @@ using Web.MessagingModels;
 
 namespace Web.DataAccess.Repositories
 {
-	public class MariaDbRepository : ISampleMessageRepository
+	public class MariaDbSampleMessageRepository : ISampleMessageRepository
 	{
-		public MariaDbRepository(string connectionString)
+
+		public MariaDbSampleMessageRepository(string connectionString)
 		{
 
 		}

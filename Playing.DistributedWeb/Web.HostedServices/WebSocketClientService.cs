@@ -35,6 +35,8 @@ namespace Web.HostedServices
 		{
 			await Task.Yield();
 
+
+
 			while (!stoppingToken.IsCancellationRequested)
 			{
 				try
@@ -102,7 +104,11 @@ namespace Web.HostedServices
 			{
 				stopMessagingToken.ThrowIfCancellationRequested();
 				Debug.WriteLine($"[{DateTime.Now}]: I do messaging");
-				// main work is gonna be done here
+
+				//setup sessionId
+				//setup initial message id value
+
+
 			}
 		}
 
@@ -113,8 +119,7 @@ namespace Web.HostedServices
 			if (_clientWebSocket == null)
 			{
 				_clientWebSocket = new ClientWebSocket();				
-				await _clientWebSocket.ConnectAsync(new Uri(ConnectionOptions.SocketUrl), stopMessagingToken);
-				int k = 0;
+				await _clientWebSocket.ConnectAsync(new Uri(ConnectionOptions.SocketUrl), stopMessagingToken);				
 			}
 		}
 

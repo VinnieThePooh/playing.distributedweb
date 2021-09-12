@@ -4,6 +4,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
+using Web.DataAccess.Interfaces;
+using Web.DataAccess.Repositories;
 using Web.HostedServices;
 using Web.HostedServices.Interfaces;
 using Web.MessagingModels.Options;
@@ -26,8 +28,14 @@ namespace Web.NodeOne
 			services.Configure<MessagingOptions>(Configuration.GetSection("Messaging"));
 			services.Configure<WebSocketConnectionOptions>(Configuration.GetSection("Messaging:Nodes:WebSocket"));
 
-			services.AddSingleton<IWebSocketClientService, WebSocketClientService>();
+			var conString = Configuration.GetConnectionString("MariaDb");
+
+			//todo: probably just non-IHostedService singleton works as well (or not?)
+			services.AddSingleton<IWebSocketClientService, WebSocketClientService>();			
 			services.AddSingleton<IHostedService>(p => p.GetService<IWebSocketClientService>());
+			
+			services.AddScoped<ISampleMessageRepository, MariaDbSampleMessageRepository>(sp => new MariaDbSampleMessageRepository(conString));
+
 			services.AddControllers();
 			services.AddSwaggerGen(c =>
 			{

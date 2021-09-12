@@ -1,16 +1,27 @@
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using Web.HostedServices;
-using Web.HostedServices.Interfaces;
+using System;
+using System.Threading.Tasks;
+using Web.DataAccess;
 
 namespace Web.NodeOne
 {
 	public class Program
 	{
-		public static void Main(string[] args)
+		public static async Task Main(string[] args)
 		{
-			CreateHostBuilder(args).Build().Run();
+			var conf = new ConfigurationBuilder()
+				.SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+				.AddJsonFile("appsettings.json")
+				.Build();
+
+			var connString = conf.GetConnectionString("MariaDb");
+
+			await SimpleMariaDbInitializer.Instance.InitializeDb(connString);
+
+			var host = CreateHostBuilder(args).Build();
+			host.Run();				
 		}
 
 		public static IHostBuilder CreateHostBuilder(string[] args) =>

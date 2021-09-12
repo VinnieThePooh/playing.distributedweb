@@ -4,6 +4,8 @@ namespace Web.MessagingModels
 {
 	public class SampleMessage
 	{
+		public const string TableName = "sample_messages";
+
 		public int Id { get; set; }
 
 		public int SessionId { get; set; }
