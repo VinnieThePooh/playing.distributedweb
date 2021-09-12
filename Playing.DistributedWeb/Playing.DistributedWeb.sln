@@ -4,12 +4,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 16.0.31613.86
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.NodeOne", "Web.NodeOne\Web.NodeOne.csproj", "{CF0639C1-CEEA-4041-A29A-0AEF9850516D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{CA37546A-F1DF-4EA8-A159-BF13AA78205D} = {CA37546A-F1DF-4EA8-A159-BF13AA78205D}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.NodeTwo", "Web.NodeTwo\Web.NodeTwo.csproj", "{CA37546A-F1DF-4EA8-A159-BF13AA78205D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.NodeThree", "Web.NodeThree\Web.NodeThree.csproj", "{BA30E696-5163-429F-B005-C5E93984604C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.MessagingModels", "Web.MessagingModels\Web.MessagingModels.csproj", "{70D4289D-B26F-45C4-8FF5-4A4BA4C47567}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Web.HostedServices", "Web.HostedServices\Web.HostedServices.csproj", "{98518635-D1B9-45D6-981C-F982B333C08C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +38,10 @@ Global
 		{70D4289D-B26F-45C4-8FF5-4A4BA4C47567}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{70D4289D-B26F-45C4-8FF5-4A4BA4C47567}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{70D4289D-B26F-45C4-8FF5-4A4BA4C47567}.Release|Any CPU.Build.0 = Release|Any CPU
+		{98518635-D1B9-45D6-981C-F982B333C08C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98518635-D1B9-45D6-981C-F982B333C08C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98518635-D1B9-45D6-981C-F982B333C08C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98518635-D1B9-45D6-981C-F982B333C08C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
