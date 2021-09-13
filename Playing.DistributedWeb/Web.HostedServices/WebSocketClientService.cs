@@ -9,6 +9,8 @@ using System.Net.WebSockets;
 using Web.HostedServices.Interfaces;
 using System.Diagnostics;
 using Web.DataAccess.Interfaces;
+using System.Text.Json;
+using System.IO;
 
 namespace Web.HostedServices
 {
@@ -101,7 +103,7 @@ namespace Web.HostedServices
 		
 
 		private async Task DoMessaging(CancellationToken stopMessagingToken, int sessionId)
-		{
+		{			
 			int withinSessionMessageId = 1;
 
 			while (true)
@@ -116,7 +118,7 @@ namespace Web.HostedServices
 					WithinSessionMessageId = withinSessionMessageId++,
 				};
 
-				await SendMessage(message);
+				await SendMessage(message, stopMessagingToken);
 			}
 		}
 
@@ -131,10 +133,15 @@ namespace Web.HostedServices
 			}
 		}
 
-		private Task SendMessage(SampleMessage message)
+		private async Task SendMessage(SampleMessage message, CancellationToken stopMessagingToken)
 		{
-			// send this to socket finally
-			return Task.CompletedTask;	
+			ArraySegment<byte> bytes;
+			using (var stream = new MemoryStream())
+			{
+				await JsonSerializer.SerializeAsync(stream, message, null, CancellationToken.None);
+				bytes = new ArraySegment<byte>(stream.ToArray());
+			}
+			await _clientWebSocket.SendAsync(bytes, WebSocketMessageType.Text, true, stopMessagingToken);
 		}
 	}
 }

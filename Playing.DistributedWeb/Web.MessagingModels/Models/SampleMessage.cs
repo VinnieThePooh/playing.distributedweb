@@ -21,5 +21,10 @@ namespace Web.MessagingModels
 		public DateTime? NodeThree_Timestamp { get; set; }
 
 		public DateTime? End_Timestamp { get; set; }
+
+		public override string ToString()
+		{
+			return $"[SessionId: {SessionId}; WithinSessionMessageId: {WithinSessionMessageId}]";
+		}
 	}
 }

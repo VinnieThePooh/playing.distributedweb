@@ -11,6 +11,10 @@ using System.Threading;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Text.Json;
+using Web.MessagingModels;
+using System.IO;
+using System.Diagnostics;
 
 namespace Web.NodeTwo
 {
@@ -80,21 +84,28 @@ namespace Web.NodeTwo
 		private async Task HandleWebSocketDataDemo(HttpContext context, WebSocket webSocket)
 		{
 			var buffer = new byte[1024 * 4];
-			WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-
+			ArraySegment<byte> bytesSegment = new ArraySegment<byte>(buffer);
+			WebSocketReceiveResult result = await webSocket.ReceiveAsync(bytesSegment, CancellationToken.None);
+			
 			var bytes = new List<byte>();
-
-			if (!result.CloseStatus.HasValue)
-				bytes.AddRange(buffer);
-
-			while (!result.CloseStatus.HasValue)
+			
+			while(!result.CloseStatus.HasValue)
 			{
-				var arraySegment = new ArraySegment<byte>(buffer);
-				result = await webSocket.ReceiveAsync(arraySegment, CancellationToken.None);
-				Console.WriteLine($"Received data, bytes count: {arraySegment.Count}");
+				bytes.AddRange(bytesSegment.Slice(0, result.Count));
+				Console.WriteLine($"Received data, bytes count: {result.Count}");
 				Console.WriteLine($"End of message: {result.EndOfMessage}");
-				bytes.AddRange(buffer);
-			}
+
+				if (result.EndOfMessage)
+				{
+					var message = (SampleMessage)await JsonSerializer.DeserializeAsync(new MemoryStream(bytes.ToArray()), typeof(SampleMessage), null, CancellationToken.None);
+					Debug.WriteLine(message.ToString());
+					bytes.Clear();
+				}
+
+				result = await webSocket.ReceiveAsync(bytesSegment, CancellationToken.None);
+			}				
+
+			
 
 			await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
 		}
