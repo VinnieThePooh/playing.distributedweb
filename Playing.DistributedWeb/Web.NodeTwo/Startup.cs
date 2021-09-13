@@ -15,6 +15,7 @@ using System.Text.Json;
 using Web.MessagingModels;
 using System.IO;
 using System.Diagnostics;
+using System.Text;
 
 namespace Web.NodeTwo
 {
@@ -59,8 +60,8 @@ namespace Web.NodeTwo
 				endpoints.MapControllers();
 			});
 
-			// /wss - default path
-			var socketPath = !string.IsNullOrEmpty(webSocketOptions?.SocketPath) ? webSocketOptions.SocketPath : "/wss";
+			// /ws - default path
+			var socketPath = !string.IsNullOrEmpty(webSocketOptions?.SocketPath) ? webSocketOptions.SocketPath : "/ws";
 			
 			//todo: move to a controller with a static route
 			app.Use(async (context, next) => {
@@ -88,26 +89,47 @@ namespace Web.NodeTwo
 			WebSocketReceiveResult result = await webSocket.ReceiveAsync(bytesSegment, CancellationToken.None);
 			
 			var bytes = new List<byte>();
-			
-			while(!result.CloseStatus.HasValue)
+
+			while (webSocket.State == WebSocketState.Open || webSocket.State == WebSocketState.CloseSent)
 			{
 				bytes.AddRange(bytesSegment.Slice(0, result.Count));
-				Console.WriteLine($"Received data, bytes count: {result.Count}");
-				Console.WriteLine($"End of message: {result.EndOfMessage}");
+				//Console.WriteLine($"Received data, bytes count: {result.Count}");
+				//Console.WriteLine($"End of message: {result.EndOfMessage}");
+				//Console.WriteLine($"MessageType: {result.MessageType}");				
+
+				Console.WriteLine($"WebSocket.State: {webSocket.State}");
+				Console.WriteLine($"WebSocketReceiveResult.CloseStatus: {(result.CloseStatus.HasValue ? result.CloseStatus.Value: "NULL")}");
+
+				SampleMessage message;
 
 				if (result.EndOfMessage)
 				{
-					var message = (SampleMessage)await JsonSerializer.DeserializeAsync(new MemoryStream(bytes.ToArray()), typeof(SampleMessage), null, CancellationToken.None);
+					var bytesArray = bytes.ToArray();
+					var str = Encoding.UTF8.GetString(bytesArray);
+					Debug.WriteLine(str);
+					
+					message = (SampleMessage)await JsonSerializer.DeserializeAsync(new MemoryStream(bytesArray), typeof(SampleMessage), null, CancellationToken.None);
 					Debug.WriteLine(message.ToString());
+
+					//send to kafka here
+					//log new data
+
 					bytes.Clear();
 				}
-
+#if DEBUG
+				if (result.MessageType == WebSocketMessageType.Close)
+				{
+					Debugger.Break();
+				}				
+				
+				if (webSocket.State == WebSocketState.CloseSent)
+				{
+					Debugger.Break();
+				}
+#endif
 				result = await webSocket.ReceiveAsync(bytesSegment, CancellationToken.None);
-			}				
-
-			
-
-			await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
+			}
+			//await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
 		}
 	}
 }
