@@ -3,7 +3,7 @@ using Web.MessagingModels;
 
 namespace Web.DataAccess.Interfaces
 {
-	public interface ISampleMessageRepository
+	public interface ISampleMessageRepository: ICachedLastSessionIdProvider
 	{
 		Task InsertNewMessage(SampleMessage newMessage);
 

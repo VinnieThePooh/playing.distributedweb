@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using System;
 using System.Text;
 using System.Threading.Tasks;
 using Web.MessagingModels;
@@ -27,7 +28,7 @@ namespace Web.DataAccess
 		public async Task InitializeDb(string connectionString)
 		{
 			if (string.IsNullOrEmpty(connectionString))			
-				throw new System.ArgumentException($"'{nameof(connectionString)}' cannot be null or empty.", nameof(connectionString));
+				throw new ArgumentException($"'{nameof(connectionString)}' cannot be null or empty.", nameof(connectionString));
 			
 			var connectionStringBuilder = new MySqlConnector.MySqlConnectionStringBuilder(connectionString);
 
@@ -48,6 +49,7 @@ namespace Web.DataAccess
 				strBuilder.AppendLine(@$"create table if not exists `{SampleMessage.TableName}` (
 										`{nameof(SampleMessage.Id)}` int(11) NOT NULL AUTO_INCREMENT,
 										`{nameof(SampleMessage.SessionId)}` int(11) NOT NULL,
+										`{nameof(SampleMessage.WithinSessionMessageId)}` int(11) NOT NULL,
 										`{nameof(SampleMessage.NodeOne_Timestamp)}` timestamp NULL DEFAULT NULL,
 										`{nameof(SampleMessage.NodeTwo_Timestamp)}` timestamp NULL DEFAULT NULL,
 										`{nameof(SampleMessage.NodeThree_Timestamp)}` timestamp NULL DEFAULT NULL,

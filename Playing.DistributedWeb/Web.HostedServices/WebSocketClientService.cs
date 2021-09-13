@@ -8,6 +8,7 @@ using Web.MessagingModels.Options;
 using System.Net.WebSockets;
 using Web.HostedServices.Interfaces;
 using System.Diagnostics;
+using Web.DataAccess.Interfaces;
 
 namespace Web.HostedServices
 {
@@ -17,11 +18,14 @@ namespace Web.HostedServices
 		private ClientWebSocket _clientWebSocket;
 		private CancellationTokenSource _stoppingMessagingCts;
 		private ManualResetEvent _manualReset = new ManualResetEvent(false);
+		private readonly ISampleMessageRepository _messageRepository;
+		private int _lastSessionId;
 
-		public WebSocketClientService(IOptions<MessagingOptions> options, IOptions<WebSocketConnectionOptions> connectionOptions)
+		public WebSocketClientService(IOptions<MessagingOptions> options, IOptions<WebSocketConnectionOptions> connectionOptions, ISampleMessageRepository messageRepository)
 		{
 			MessagingOptions = options.Value;
 			ConnectionOptions = connectionOptions.Value;
+			_messageRepository = messageRepository ?? throw new ArgumentNullException(nameof(messageRepository));
 		}
 
 		public MessagingOptions MessagingOptions { get; private set; }
@@ -34,9 +38,6 @@ namespace Web.HostedServices
 		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 		{
 			await Task.Yield();
-
-
-
 			while (!stoppingToken.IsCancellationRequested)
 			{
 				try
@@ -68,7 +69,8 @@ namespace Web.HostedServices
 
 		private async Task StartMessagingSession(CancellationToken stopMessagingToken)
 		{
-			var workingTask = Task.Run(() => DoMessaging(stopMessagingToken), stopMessagingToken);
+			var newSessionId = await _messageRepository.GetCachedLastSessionId();
+			var workingTask = Task.Run(() => DoMessaging(stopMessagingToken, newSessionId), stopMessagingToken);
 			await Task.Delay(MessagingOptions.Duration * 1000);
 			await StopMessaging();
 			await workingTask;
@@ -98,17 +100,23 @@ namespace Web.HostedServices
 		}
 		
 
-		private Task DoMessaging(CancellationToken stopMessagingToken)
+		private async Task DoMessaging(CancellationToken stopMessagingToken, int sessionId)
 		{
+			int withinSessionMessageId = 1;
+
 			while (true)
 			{
 				stopMessagingToken.ThrowIfCancellationRequested();
 				Debug.WriteLine($"[{DateTime.Now}]: I do messaging");
 
-				//setup sessionId
-				//setup initial message id value
+				var message = new SampleMessage
+				{
+					NodeOne_Timestamp = DateTime.Now,
+					SessionId = sessionId,
+					WithinSessionMessageId = withinSessionMessageId++,
+				};
 
-
+				await SendMessage(message);
 			}
 		}
 
@@ -118,24 +126,14 @@ namespace Web.HostedServices
 		{
 			if (_clientWebSocket == null)
 			{
-				_clientWebSocket = new ClientWebSocket();				
+				_clientWebSocket = new ClientWebSocket();
 				await _clientWebSocket.ConnectAsync(new Uri(ConnectionOptions.SocketUrl), stopMessagingToken);				
 			}
 		}
 
 		private Task SendMessage(SampleMessage message)
 		{
-			//var messageId = 0;
-			//var sessionId = _random.Next(1);
-
-			//create message
-			//var sample = new SampleMessage
-			//{
-			//	SessionId = sessionId,
-			//	Id = ++messageId,
-			//	NodeOne_Timestamp = DateTime.Now
-			//};
-
+			// send this to socket finally
 			return Task.CompletedTask;	
 		}
 	}

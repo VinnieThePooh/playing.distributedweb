@@ -4,6 +4,8 @@ using Microsoft.Extensions.Hosting;
 using System;
 using System.Threading.Tasks;
 using Web.DataAccess;
+using Web.DataAccess.Interfaces;
+using Web.DataAccess.Repositories;
 
 namespace Web.NodeOne
 {
@@ -21,6 +23,10 @@ namespace Web.NodeOne
 			await SimpleMariaDbInitializer.Instance.InitializeDb(connString);
 
 			var host = CreateHostBuilder(args).Build();
+
+			var repo = (ISampleMessageRepository)host.Services.GetService(typeof(ISampleMessageRepository));
+			var lastSessionId = await repo.GetLastSessionId();
+			await MariaDbSampleMessageRepository.SetLastSessionId(lastSessionId);
 			host.Run();				
 		}
 

@@ -6,9 +6,13 @@ namespace Web.MessagingModels
 	{
 		public const string TableName = "sample_messages";
 
+		// db pk
 		public int Id { get; set; }
 
 		public int SessionId { get; set; }
+
+		//to track within session
+		public int WithinSessionMessageId { get; set; }
 
 		public DateTime? NodeOne_Timestamp { get; set; }
 

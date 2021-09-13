@@ -9,6 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Web.DataAccess\Web.DataAccess.csproj" />
     <ProjectReference Include="..\Web.MessagingModels\Web.MessagingModels.csproj" />
   </ItemGroup>
 

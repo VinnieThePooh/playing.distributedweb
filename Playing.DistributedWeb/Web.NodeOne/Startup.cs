@@ -32,9 +32,8 @@ namespace Web.NodeOne
 
 			//todo: probably just non-IHostedService singleton works as well (or not?)
 			services.AddSingleton<IWebSocketClientService, WebSocketClientService>();			
-			services.AddSingleton<IHostedService>(p => p.GetService<IWebSocketClientService>());
-			
-			services.AddScoped<ISampleMessageRepository, MariaDbSampleMessageRepository>(sp => new MariaDbSampleMessageRepository(conString));
+			services.AddSingleton<IHostedService>(p => p.GetService<IWebSocketClientService>());			
+			services.AddSingleton<ISampleMessageRepository, MariaDbSampleMessageRepository>(sp => new MariaDbSampleMessageRepository(conString));			
 
 			services.AddControllers();
 			services.AddSwaggerGen(c =>
