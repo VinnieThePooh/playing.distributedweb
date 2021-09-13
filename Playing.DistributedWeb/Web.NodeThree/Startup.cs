@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Web.MessagingModels.Options;
 
 namespace Web.NodeThree
 {
@@ -37,6 +38,8 @@ namespace Web.NodeThree
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
 		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 		{
+			var kafkaOptions = Configuration.GetSection("KafkaOptions").Get<KafkaOptions>();
+
 			if (env.IsDevelopment())
 			{
 				app.UseDeveloperExceptionPage();

@@ -38,7 +38,7 @@ namespace Web.NodeTwo
 		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 		{
 			var webSocketOptions = Configuration.GetSection("WebSocketServer").Get<WebSocketServerOptions>();
-			var kafkaOptions = Configuration.GetSection("KafkaProducerOptions").Get<KafkaProducerOptions>();
+			var kafkaOptions = Configuration.GetSection("KafkaOptions").Get<KafkaOptions>();
 
 			//todo: add other options from config
 			var socketOptions = new WebSocketOptions()
