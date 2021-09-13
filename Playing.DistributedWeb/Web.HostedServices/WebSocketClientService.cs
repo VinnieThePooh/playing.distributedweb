@@ -7,7 +7,6 @@ using Web.MessagingModels;
 using Web.MessagingModels.Options;
 using System.Net.WebSockets;
 using Web.HostedServices.Interfaces;
-using System.Diagnostics;
 using Web.DataAccess.Interfaces;
 using System.Text.Json;
 using System.IO;
