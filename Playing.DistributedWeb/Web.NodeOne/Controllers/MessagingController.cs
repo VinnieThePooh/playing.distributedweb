@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
-using Web.HostedServices;
 using Web.HostedServices.Interfaces;
 
 namespace Web.NodeOne.Controllers
