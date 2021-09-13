@@ -30,9 +30,9 @@ namespace Web.HostedServices
 			_messageRepository = messageRepository ?? throw new ArgumentNullException(nameof(messageRepository));
 		}
 
-		public MessagingOptions MessagingOptions { get; private set; }
+		public MessagingOptions MessagingOptions { get; }
 
-		public WebSocketConnectionOptions ConnectionOptions { get; private set; }
+		public WebSocketConnectionOptions ConnectionOptions { get; }
 
 		public bool IsMessaging => _stoppingMessagingCts != null;
 

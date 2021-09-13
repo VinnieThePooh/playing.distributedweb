@@ -58,7 +58,7 @@ namespace Web.DataAccess
 )										ENGINE = InnoDB DEFAULT CHARSET = utf8mb3; ");
 
 				var sql = strBuilder.ToString();					
-				await connection.ExecuteAsync(sql);				
+				await connection.ExecuteAsync(sql);		
 			}				
 		}
 	}

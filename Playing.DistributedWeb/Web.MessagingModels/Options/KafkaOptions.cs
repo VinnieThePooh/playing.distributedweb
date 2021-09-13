@@ -1,6 +1,6 @@
 ﻿namespace Web.MessagingModels.Options
 {
-	public class KafkaProducerOptions
+	public class KafkaOptions
 	{
 		public string ClientId { get; set; }
 
