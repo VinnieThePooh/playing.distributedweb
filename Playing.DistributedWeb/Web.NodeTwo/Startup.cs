@@ -16,6 +16,8 @@ using Web.MessagingModels;
 using System.IO;
 using System.Diagnostics;
 using System.Text;
+using Web.MessagingModels.Models;
+using Web.Services.Kafka.Producers;
 
 namespace Web.NodeTwo
 {
@@ -30,15 +32,23 @@ namespace Web.NodeTwo
 
 		// This method gets called by the runtime. Use this method to add services to the container.
 		public void ConfigureServices(IServiceCollection services)
-		{			
-			services.AddControllers();			
+		{
+			services.Configure<KafkaOptions>(Configuration.GetSection("KafkaOptions"));
+			services.Configure<WebSocketServerOptions>(Configuration.GetSection("WebSocketServer"));
+			services.AddControllers();
+
+			services.AddSingleton<ISampleMessageProducer<KafkaMessageId>, SampleMessageProducer>();
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
 		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 		{
 			var webSocketOptions = Configuration.GetSection("WebSocketServer").Get<WebSocketServerOptions>();
-			var kafkaOptions = Configuration.GetSection("KafkaOptions").Get<KafkaOptions>();
+
+			var kafkaProducer = app.ApplicationServices.GetService<ISampleMessageProducer<KafkaMessageId>>();
+
+			
+
 
 			//todo: add other options from config
 			var socketOptions = new WebSocketOptions()
@@ -78,12 +88,12 @@ namespace Web.NodeTwo
 							
 				using (WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync())
 				{
-					await HandleWebSocketDataDemo(context, webSocket);
+					await HandleWebSocketDataDemo(context, webSocket, kafkaProducer);
 				}				
 			});
 		}
 		
-		private async Task HandleWebSocketDataDemo(HttpContext context, WebSocket webSocket)
+		private async Task HandleWebSocketDataDemo(HttpContext context, WebSocket webSocket, ISampleMessageProducer<KafkaMessageId> producer)
 		{
 			var buffer = new byte[1024 * 4];
 			ArraySegment<byte> bytesSegment = new ArraySegment<byte>(buffer);
@@ -91,6 +101,7 @@ namespace Web.NodeTwo
 			
 			var bytes = new List<byte>();
 
+			//while (!webSocket.CloseStatus.HasValue)
 			while (webSocket.State == WebSocketState.Open || webSocket.State == WebSocketState.CloseSent)
 			{
 				bytes.AddRange(bytesSegment.Slice(0, result.Count));
@@ -105,29 +116,20 @@ namespace Web.NodeTwo
 
 				if (result.EndOfMessage)
 				{
+#if DEBUG
 					var bytesArray = bytes.ToArray();
 					var str = Encoding.UTF8.GetString(bytesArray);
 					Debug.WriteLine(str);
-					
+#endif
+
 					message = (SampleMessage)await JsonSerializer.DeserializeAsync(new MemoryStream(bytesArray), typeof(SampleMessage), null, CancellationToken.None);
 					Debug.WriteLine(message.ToString());
 
-					//send to kafka here
-					//log new data
+					var deliveryResult = await producer.ProduceAsync(message, CancellationToken.None);
 
 					bytes.Clear();
 				}
-#if DEBUG
-				if (result.MessageType == WebSocketMessageType.Close)
-				{
-					Debugger.Break();
-				}				
-				
-				if (webSocket.State == WebSocketState.CloseSent)
-				{
-					Debugger.Break();
-				}
-#endif
+
 				result = await webSocket.ReceiveAsync(bytesSegment, CancellationToken.None);
 			}
 			//await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
