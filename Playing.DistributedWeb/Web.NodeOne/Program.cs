@@ -13,10 +13,12 @@ namespace Web.NodeOne
 	{
 		public static async Task Main(string[] args)
 		{
+			Console.Title = "Web.NodeTwo";
+
 			var conf = new ConfigurationBuilder()
 				.SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
 				.AddJsonFile("appsettings.json")
-				.Build();
+				.Build();			
 
 			var connString = conf.GetConnectionString("MariaDb");
 

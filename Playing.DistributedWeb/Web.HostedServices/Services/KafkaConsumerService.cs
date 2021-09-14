@@ -29,7 +29,7 @@ namespace Web.HostedServices
 
 			while(!stoppingToken.IsCancellationRequested)
 			{
-				int counter = 0;			
+				int counter = 0;
 				while(true)
 				{
 					try

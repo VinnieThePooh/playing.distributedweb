@@ -54,14 +54,7 @@ namespace Web.HostedServices
 				}
 				catch (OperationCanceledException ce)
 				{
-					await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);
-					//todo: handle connection closing
-					// connection is still opened now
-					//await _clientWebSocket.SendAsync(new ArraySegment<byte>(), WebSocketMessageType.Close, true, CancellationToken.None);
-					//await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
-					//await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
-					//await SendInitClosingMessage();
-					//do nothing
+					await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);							
 				}
 				catch (WebSocketException wse)
 				{
@@ -114,7 +107,8 @@ namespace Web.HostedServices
 
 			while (true)
 			{
-				stopMessagingToken.ThrowIfCancellationRequested();			
+				if (stopMessagingToken.IsCancellationRequested)
+					break;
 
 				var message = new SampleMessage
 				{
@@ -123,8 +117,14 @@ namespace Web.HostedServices
 					WithinSessionMessageId = withinSessionMessageId++,
 				};
 
-				await SendMessage(message, stopMessagingToken);			
+				await SendMessage(message, stopMessagingToken);
+
+				if (stopMessagingToken.IsCancellationRequested)
+					break;				
 			}
+			
+			await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+			stopMessagingToken.ThrowIfCancellationRequested();
 		}
 
 		//todo: add network problems handling (retry)

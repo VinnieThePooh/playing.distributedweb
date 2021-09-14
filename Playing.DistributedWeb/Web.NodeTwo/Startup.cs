@@ -74,7 +74,8 @@ namespace Web.NodeTwo
 			var socketPath = !string.IsNullOrEmpty(webSocketOptions?.SocketPath) ? webSocketOptions.SocketPath : "/ws";
 			
 			//todo: move to a controller with a static route
-			app.Use(async (context, next) => {
+			app.Use(async (context, next) => 
+			{
 
 				if (context.Request.Path != socketPath)
 				{
@@ -84,11 +85,9 @@ namespace Web.NodeTwo
 
 				if (!context.WebSockets.IsWebSocketRequest)
 					context.Response.StatusCode = StatusCodes.Status400BadRequest;
-							
-				using (WebSocket webSocket = await context.WebSockets.AcceptWebSocketAsync())
-				{
-					await HandleWebSocketDataDemo(context, webSocket, kafkaProducer);
-				}				
+
+				var webSocket = await context.WebSockets.AcceptWebSocketAsync();
+				await HandleWebSocketDataDemo(context, webSocket, kafkaProducer);					
 			});
 		}
 		
@@ -98,18 +97,13 @@ namespace Web.NodeTwo
 			ArraySegment<byte> bytesSegment = new ArraySegment<byte>(buffer);
 			WebSocketReceiveResult result = await webSocket.ReceiveAsync(bytesSegment, CancellationToken.None);
 			
-			var bytes = new List<byte>();
-
-			//while (!webSocket.CloseStatus.HasValue)
-			while (webSocket.State == WebSocketState.Open || webSocket.State == WebSocketState.CloseSent)
+			var bytes = new List<byte>();			
+			
+			while (!webSocket.CloseStatus.HasValue)
 			{
-				bytes.AddRange(bytesSegment.Slice(0, result.Count));
-				//Console.WriteLine($"Received data, bytes count: {result.Count}");
-				//Console.WriteLine($"End of message: {result.EndOfMessage}");
-				//Console.WriteLine($"MessageType: {result.MessageType}");				
+				TraceWebSocketStatus(webSocket);
 
-				Console.WriteLine($"WebSocket.State: {webSocket.State}");
-				Console.WriteLine($"WebSocketReceiveResult.CloseStatus: {(result.CloseStatus.HasValue ? result.CloseStatus.Value: "NULL")}");
+				bytes.AddRange(bytesSegment.Slice(0, result.Count));				
 
 				SampleMessage message;
 
@@ -119,7 +113,7 @@ namespace Web.NodeTwo
 					message.NodeTwo_Timestamp = DateTime.Now;
 
 #if DEBUG
-					Debug.WriteLine(message.ToJson());
+					Debug.WriteLine($"Web.NodeTwo WebSocket received: {message.ToJson()}"); 
 #endif
 
 					var deliveryResult = await producer.ProduceAsync(message, CancellationToken.None);					
@@ -127,10 +121,24 @@ namespace Web.NodeTwo
 
 					bytes.Clear();
 				}
+				
+				if (webSocket.State == WebSocketState.CloseReceived)
+				{
+					Debugger.Break();
 
+					await webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+					break;
+				}
+				
 				result = await webSocket.ReceiveAsync(bytesSegment, CancellationToken.None);
 			}
 			//await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
+		}
+
+		private void TraceWebSocketStatus(WebSocket webSocket)
+		{
+			Console.WriteLine($"ServerSocket close status: {(webSocket.CloseStatus.HasValue ? webSocket.CloseStatus.Value: "NULL")}");
+			Console.WriteLine($"ServerSocket state: {webSocket.State}");
 		}
 	}
 }
