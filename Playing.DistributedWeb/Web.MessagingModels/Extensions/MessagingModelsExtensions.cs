@@ -10,7 +10,8 @@ namespace Web.MessagingModels.Extensions
 			if (model == null)
 				return "NULL";
 
-			return JsonSerializer.Serialize(model);
+			//reflection?
+			return JsonSerializer.Serialize(model, model.GetType());
 		}
 	}
 }

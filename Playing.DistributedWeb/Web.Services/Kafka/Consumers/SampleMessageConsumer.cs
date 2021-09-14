@@ -24,9 +24,11 @@ namespace Web.Services.Kafka.Consumers
 				ClientId = KafkaOptions.ClientId,		
 				GroupId = "importance: high",			
 			};
-			_consumer = new ConsumerBuilder<Ignore, SampleMessage>(config)
+			_consumer = new ConsumerBuilder<Ignore, SampleMessage>(config)				
 			.SetValueDeserializer(new CustomDeserializer<SampleMessage>())
-			.Build();			
+			.Build();
+
+			//_consumer.Subscribe(KafkaOptions.TopicName);
 		}
 
 		public KafkaOptions KafkaOptions { get; }

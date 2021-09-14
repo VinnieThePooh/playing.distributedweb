@@ -11,8 +11,8 @@ namespace Web.Services.Kafka.Serialization
 			if (data == null)
 				return new byte[0];
 
-			using var memory = new MemoryStream();			
-			Serializer.Serialize<T>(memory, data);
+			using var memory = new MemoryStream();
+			Serializer.Serialize(memory, data);
 			return memory.ToArray();
 		}
 	}

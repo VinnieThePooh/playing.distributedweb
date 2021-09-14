@@ -19,6 +19,7 @@ using System.Text;
 using Web.MessagingModels.Models;
 using Web.Services.Kafka.Producers;
 using Confluent.Kafka;
+using Web.MessagingModels.Extensions;
 
 namespace Web.NodeTwo
 {
@@ -114,17 +115,15 @@ namespace Web.NodeTwo
 
 				if (result.EndOfMessage)
 				{
+					message = (SampleMessage)await JsonSerializer.DeserializeAsync(new MemoryStream(bytes.ToArray()), typeof(SampleMessage), null, CancellationToken.None);
+					message.NodeTwo_Timestamp = DateTime.Now;
+
 #if DEBUG
-					var bytesArray = bytes.ToArray();
-					var str = Encoding.UTF8.GetString(bytesArray);
-					Debug.WriteLine(str);
+					Debug.WriteLine(message.ToJson());
 #endif
 
-					message = (SampleMessage)await JsonSerializer.DeserializeAsync(new MemoryStream(bytesArray), typeof(SampleMessage), null, CancellationToken.None);
-					Debug.WriteLine(message.ToString());
-
 					var deliveryResult = await producer.ProduceAsync(message, CancellationToken.None);					
-					Debug.WriteLine(deliveryResult.Status);
+					//Debug.WriteLine(deliveryResult.Status);
 
 					bytes.Clear();
 				}

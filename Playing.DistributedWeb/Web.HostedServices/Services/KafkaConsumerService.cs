@@ -8,6 +8,7 @@ using Web.Services.Kafka.Consumers;
 using Web.MessagingModels.Extensions;
 using System.Diagnostics;
 using Confluent.Kafka;
+using Web.MessagingModels;
 
 namespace Web.HostedServices
 {
@@ -28,14 +29,16 @@ namespace Web.HostedServices
 
 			while(!stoppingToken.IsCancellationRequested)
 			{
+				int counter = 0;			
 				while(true)
 				{
 					try
 					{
 						consumingCancellationToken.ThrowIfCancellationRequested();
 						var consumeResult = SampleMessageConsumer.Consume(consumingCancellationToken);
+						
 						var json = consumeResult.Message.Value.ToJson();
-						Debug.WriteLine($"Got: {json}");
+						Debug.WriteLine($"{++counter}.Got: {json}");
 					}
 					catch (OperationCanceledException e)
 					{						

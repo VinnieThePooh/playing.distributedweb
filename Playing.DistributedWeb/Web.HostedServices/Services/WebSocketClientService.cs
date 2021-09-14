@@ -123,7 +123,7 @@ namespace Web.HostedServices
 					WithinSessionMessageId = withinSessionMessageId++,
 				};
 
-				await SendMessage(message, stopMessagingToken);
+				await SendMessage(message, stopMessagingToken);			
 			}
 		}
 
