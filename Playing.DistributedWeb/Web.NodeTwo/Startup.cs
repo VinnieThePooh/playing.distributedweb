@@ -18,6 +18,7 @@ using System.Diagnostics;
 using System.Text;
 using Web.MessagingModels.Models;
 using Web.Services.Kafka.Producers;
+using Confluent.Kafka;
 
 namespace Web.NodeTwo
 {
@@ -37,17 +38,14 @@ namespace Web.NodeTwo
 			services.Configure<WebSocketServerOptions>(Configuration.GetSection("WebSocketServer"));
 			services.AddControllers();
 
-			services.AddSingleton<ISampleMessageProducer<KafkaMessageId>, SampleMessageProducer>();
+			services.AddSingleton<ISampleMessageProducer<Null>, SampleMessageProducer>();
 		}
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
 		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 		{
 			var webSocketOptions = Configuration.GetSection("WebSocketServer").Get<WebSocketServerOptions>();
-
-			var kafkaProducer = app.ApplicationServices.GetService<ISampleMessageProducer<KafkaMessageId>>();
-
-			
+			var kafkaProducer = app.ApplicationServices.GetService<ISampleMessageProducer<Null>>();
 
 
 			//todo: add other options from config
@@ -93,7 +91,7 @@ namespace Web.NodeTwo
 			});
 		}
 		
-		private async Task HandleWebSocketDataDemo(HttpContext context, WebSocket webSocket, ISampleMessageProducer<KafkaMessageId> producer)
+		private async Task HandleWebSocketDataDemo(HttpContext context, WebSocket webSocket, ISampleMessageProducer<Null> producer)
 		{
 			var buffer = new byte[1024 * 4];
 			ArraySegment<byte> bytesSegment = new ArraySegment<byte>(buffer);
@@ -125,7 +123,8 @@ namespace Web.NodeTwo
 					message = (SampleMessage)await JsonSerializer.DeserializeAsync(new MemoryStream(bytesArray), typeof(SampleMessage), null, CancellationToken.None);
 					Debug.WriteLine(message.ToString());
 
-					var deliveryResult = await producer.ProduceAsync(message, CancellationToken.None);
+					var deliveryResult = await producer.ProduceAsync(message, CancellationToken.None);					
+					Debug.WriteLine(deliveryResult.Status);
 
 					bytes.Clear();
 				}

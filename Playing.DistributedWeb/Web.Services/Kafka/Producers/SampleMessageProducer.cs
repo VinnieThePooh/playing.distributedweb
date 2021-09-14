@@ -7,12 +7,13 @@ using Web.MessagingModels;
 using Web.MessagingModels.Interfaces;
 using Web.MessagingModels.Models;
 using Web.MessagingModels.Options;
+using Web.Services.Kafka.Serialization;
 
 namespace Web.Services.Kafka.Producers
 {
-	public class SampleMessageProducer: ISampleMessageProducer<KafkaMessageId>, IHasKafkaOptions, IDisposable
+	public class SampleMessageProducer: ISampleMessageProducer<Null>, IHasKafkaOptions, IDisposable
 	{
-		private IProducer<KafkaMessageId, SampleMessage> _producer;
+		private IProducer<Null, SampleMessage> _producer;
 
 		public SampleMessageProducer(IOptions<KafkaOptions> options)
 		{
@@ -24,20 +25,23 @@ namespace Web.Services.Kafka.Producers
 			var config = new ProducerConfig
 			{
 				BootstrapServers = KafkaOptions.BootstrapServerUrl,
-				ClientId = KafkaOptions.ClientId,
+				ClientId = KafkaOptions.ClientId,								
 			};
 
-			_producer = new ProducerBuilder<KafkaMessageId, SampleMessage>(config).Build();
+			_producer = new ProducerBuilder<Null, SampleMessage>(config)
+			.SetValueSerializer(new CustomSerializer<SampleMessage>())
+			.Build();
 		}
 
 		public KafkaOptions KafkaOptions { get; }
 
-		public Task<DeliveryResult<KafkaMessageId, SampleMessage>> ProduceAsync(SampleMessage message, CancellationToken token)
+		public Task<DeliveryResult<Null, SampleMessage>> ProduceAsync(SampleMessage message, CancellationToken token)
 		{
-			var kafkaMessage = new Message<KafkaMessageId, SampleMessage>()
+			var kafkaMessage = new Message<Null , SampleMessage>()
 			{
-				Key = new KafkaMessageId(message.SessionId, message.WithinSessionMessageId),
-				Value = message
+				//Key = new KafkaMessageId(message.SessionId, message.WithinSessionMessageId),
+				Value = message,			
+				Timestamp = new Timestamp(DateTime.Now)
 			};
 			return _producer.ProduceAsync(KafkaOptions.TopicName, kafkaMessage, token);
 		}

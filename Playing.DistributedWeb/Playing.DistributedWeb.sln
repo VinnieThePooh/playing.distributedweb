@@ -4,13 +4,16 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 16.0.31613.86
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Web.NodeOne", "Web.NodeOne\Web.NodeOne.csproj", "{CF0639C1-CEEA-4041-A29A-0AEF9850516D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Web.NodeTwo", "Web.NodeTwo\Web.NodeTwo.csproj", "{CA37546A-F1DF-4EA8-A159-BF13AA78205D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{CF0639C1-CEEA-4041-A29A-0AEF9850516D} = {CF0639C1-CEEA-4041-A29A-0AEF9850516D}
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Web.NodeThree", "Web.NodeThree\Web.NodeThree.csproj", "{BA30E696-5163-429F-B005-C5E93984604C}"
 	ProjectSection(ProjectDependencies) = postProject
 		{CA37546A-F1DF-4EA8-A159-BF13AA78205D} = {CA37546A-F1DF-4EA8-A159-BF13AA78205D}
 	EndProjectSection
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Web.NodeTwo", "Web.NodeTwo\Web.NodeTwo.csproj", "{CA37546A-F1DF-4EA8-A159-BF13AA78205D}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Web.NodeThree", "Web.NodeThree\Web.NodeThree.csproj", "{BA30E696-5163-429F-B005-C5E93984604C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Web.MessagingModels", "Web.MessagingModels\Web.MessagingModels.csproj", "{70D4289D-B26F-45C4-8FF5-4A4BA4C47567}"
 EndProject

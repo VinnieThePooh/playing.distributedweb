@@ -5,16 +5,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Confluent.Kafka" Version="1.7.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="5.6.3" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Web.HostedServices\Web.HostedServices.csproj" />
     <ProjectReference Include="..\Web.MessagingModels\Web.MessagingModels.csproj" />
+    <ProjectReference Include="..\Web.Services\Web.Services.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Controllers\" />
+    <Folder Include="Kafka\" />
   </ItemGroup>
 
 </Project>

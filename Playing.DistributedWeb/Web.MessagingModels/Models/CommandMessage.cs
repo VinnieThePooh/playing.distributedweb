@@ -1,6 +1,8 @@
-﻿namespace Web.MessagingModels.Models
+﻿using Web.MessagingModels.Interfaces;
+
+namespace Web.MessagingModels.Models
 {
-	public class CommandMessage
+	public class CommandMessage: IMessagingModel
 	{
 		//static int JsonSerializedObjectLength  
 
