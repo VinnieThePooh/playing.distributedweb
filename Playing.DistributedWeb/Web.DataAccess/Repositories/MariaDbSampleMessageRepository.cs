@@ -57,6 +57,7 @@ namespace Web.DataAccess.Repositories
 			}
 
 			var sql = builder.ToString();
+			builder.Clear();
 			using var connection = new MySqlConnection(_connectionString);
 			var command = connection.CreateCommand();			
 			command.CommandText = sql;
@@ -79,14 +80,13 @@ namespace Web.DataAccess.Repositories
 		}
 		
 		private string GetInsertFragment(SampleMessage message, bool isLastMessage)
-		{			
-			var cinfo = CultureInfo.InvariantCulture;
+		{		
 			return $@"({message.SessionId},
 					   {message.WithinSessionMessageId},
-					   '{(message.NodeOne_Timestamp.HasValue ? message.NodeOne_Timestamp.Value.ToString("s" , cinfo): null)}',
-					   '{(message.NodeTwo_Timestamp.HasValue ? message.NodeTwo_Timestamp.Value.ToString("s", cinfo) : null)}',
-					   '{(message.NodeThree_Timestamp.HasValue ? message.NodeThree_Timestamp.Value.ToString("s", cinfo) : null)}',
-					   '{(message.End_Timestamp.HasValue ? message.End_Timestamp.Value.ToString("s", cinfo) : null)}'){(isLastMessage ? ";": ",")}";
+					   '{(message.NodeOne_Timestamp.HasValue ? message.NodeOne_Timestamp.Value.ToString("s"): null)}',
+					   '{(message.NodeTwo_Timestamp.HasValue ? message.NodeTwo_Timestamp.Value.ToString("s") : null)}',
+					   '{(message.NodeThree_Timestamp.HasValue ? message.NodeThree_Timestamp.Value.ToString("s") : null)}',
+					   '{(message.End_Timestamp.HasValue ? message.End_Timestamp.Value.ToString("s") : null)}'){(isLastMessage ? ";": ",")}";
 		}
 	}
 }

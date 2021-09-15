@@ -54,8 +54,7 @@ namespace Web.HostedServices
 				}
 				catch (OperationCanceledException ce)
 				{
-					await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);
-					
+					await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);			
 				}
 				catch (WebSocketException wse)
 				{
