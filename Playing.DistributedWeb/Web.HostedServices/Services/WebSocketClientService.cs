@@ -43,10 +43,11 @@ namespace Web.HostedServices
 			await Task.Yield();
 			while (!stoppingToken.IsCancellationRequested)
 			{
-				var opToken = _stoppingMessagingCts.Token;
+				CancellationToken opToken;
 				try
 				{
-					_manualReset.WaitOne();					
+					_manualReset.WaitOne();
+					opToken = _stoppingMessagingCts.Token;
 					await EnsureSocketInitialized(opToken);
 					_lastSessionId = await _messageRepository.GetCachedLastSessionId();
 					await StartMessagingSession(opToken, _lastSessionId + 1);
