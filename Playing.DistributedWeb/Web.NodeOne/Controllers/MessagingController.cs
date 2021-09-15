@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using Web.DataAccess.Interfaces;
 using Web.HostedServices.Interfaces;
@@ -46,9 +48,9 @@ namespace Web.NodeOne.Controllers
 
 
 		[HttpPost("end-roundtrip")]
-		public async Task<ActionResult> AcceptMessages(List<SampleMessage> messages)
+		public async Task<ActionResult> AcceptMessages(IEnumerable<SampleMessage> messages)
 		{
-
+			Debug.WriteLine($"Received {messages.Count()} messages");
 			return Accepted();
 		}
 	}

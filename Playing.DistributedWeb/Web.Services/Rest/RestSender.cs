@@ -2,8 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Web.MessagingModels;
 using Web.MessagingModels.Options;
@@ -30,11 +33,13 @@ namespace Web.Services.Rest
 			_internalBatch = new List<SampleMessage>();
 			_lazyClient = new Lazy<HttpClient>(() => {
 
-				var client = new HttpClient();
-				client.BaseAddress = new Uri(TalkOptions.EndPointUrl);
-				client.DefaultRequestHeaders.Add("Content-Type", "application/json");		
+				var handler = new HttpClientHandler();
+				handler.ServerCertificateCustomValidationCallback += SslValidationCallback;
+
+				var client = new HttpClient(handler);
+				client.BaseAddress = new Uri(TalkOptions.EndPointUrl);				
 				return client;
-			});
+			});			
 		}
 
 		public RestTalkOptions TalkOptions { get; }
@@ -80,15 +85,21 @@ namespace Web.Services.Rest
 
 			_httpClient?.Dispose();
 			_internalBatch.Clear();
-			_internalBatch = null;			
+			_internalBatch = null;
+			ServicePointManager.ServerCertificateValidationCallback -= SslValidationCallback;
 			_wasDisposed = true;
 		}
 
 		private async Task PostData(IEnumerable<SampleMessage> messages)
 		{
-			//todo: configure it later for effective reusing		
-			var result = await _httpClient.PostAsync((Uri?)null, JsonContent.Create(messages));
+			//todo: configure it later for effective reusing
+
+			var content = JsonContent.Create(messages);			
+			var result = await _httpClient.PostAsync((Uri?)null, content);
 			result.EnsureSuccessStatusCode();
 		}
+
+		private bool SslValidationCallback(object sender, X509Certificate? certificate, X509Chain? chain, SslPolicyErrors sslPolicyErrors) => true;
+		
 	}
 }

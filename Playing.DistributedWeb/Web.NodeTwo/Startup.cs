@@ -101,7 +101,7 @@ namespace Web.NodeTwo
 			
 			while (!webSocket.CloseStatus.HasValue)
 			{
-				TraceWebSocketStatus(webSocket);
+				//TraceWebSocketStatus(webSocket);
 
 				bytes.AddRange(bytesSegment.Slice(0, result.Count));		
 
@@ -113,12 +113,10 @@ namespace Web.NodeTwo
 					message.NodeTwo_Timestamp = DateTime.Now;
 
 #if DEBUG
-					Console.WriteLine($"Web.NodeTwo WebSocket received: {message.ToJson()}");
+					//Console.WriteLine($"Web.NodeTwo WebSocket received: {message.ToJson()}");
 #endif
 
 					var deliveryResult = await producer.ProduceAsync(message, CancellationToken.None);
-					Debug.WriteLine(deliveryResult.Status);
-
 					bytes.Clear();
 				}
 
