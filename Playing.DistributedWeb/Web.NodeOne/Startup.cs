@@ -50,7 +50,7 @@ namespace Web.NodeOne
 				app.UseDeveloperExceptionPage();
 				app.UseSwagger();
 				app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Web.NodeOne v1"));
-			}
+			}			
 
 			app.UseHttpsRedirection();
 			app.UseRouting();			

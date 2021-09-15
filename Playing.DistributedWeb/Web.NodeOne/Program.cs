@@ -13,7 +13,7 @@ namespace Web.NodeOne
 	{
 		public static async Task Main(string[] args)
 		{
-			Console.Title = "Web.NodeTwo";
+			Console.Title = "Web.NodeOne";
 
 			var conf = new ConfigurationBuilder()
 				.SetBasePath(AppDomain.CurrentDomain.BaseDirectory)

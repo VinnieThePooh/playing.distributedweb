@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using Web.DataAccess.Interfaces;
 using Web.HostedServices.Interfaces;
+using Web.MessagingModels;
 
 namespace Web.NodeOne.Controllers
 {
@@ -10,6 +13,7 @@ namespace Web.NodeOne.Controllers
 	public class MessagingController : ControllerBase
 	{
 		private readonly IWebSocketClientService _webSocketClient;
+		private readonly ISampleMessageRepository _messageRepository;
 
 		public MessagingController(IWebSocketClientService webSocketClient)
 		{
@@ -38,6 +42,14 @@ namespace Web.NodeOne.Controllers
 				return BadRequest("WebSocketClientService is already stopped");
 
 			return Ok("Messaging stopped");
+		}
+
+
+		[HttpPost("end-roundtrip")]
+		public async Task<ActionResult> AcceptMessages(List<SampleMessage> messages)
+		{
+
+			return Accepted();
 		}
 	}
 }

@@ -17,7 +17,7 @@ namespace Web.Services.Kafka.Consumers
 
 		public SampleMessageConsumer(IOptions<KafkaOptions> kafkaOptions)
 		{
-			KafkaOptions = kafkaOptions.Value;
+			KafkaOptions = kafkaOptions?.Value ?? throw new ArgumentNullException(nameof(kafkaOptions));
 			var config = new ConsumerConfig
 			{
 				BootstrapServers = KafkaOptions.BootstrapServerUrl,
@@ -28,7 +28,7 @@ namespace Web.Services.Kafka.Consumers
 			.SetValueDeserializer(new CustomDeserializer<SampleMessage>())
 			.Build();
 
-			//_consumer.Subscribe(KafkaOptions.TopicName);
+			_consumer.Subscribe(KafkaOptions.TopicName);
 		}
 
 		public KafkaOptions KafkaOptions { get; }

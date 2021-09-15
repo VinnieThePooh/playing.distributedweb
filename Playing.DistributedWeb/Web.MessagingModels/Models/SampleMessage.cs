@@ -9,8 +9,7 @@ namespace Web.MessagingModels
 	{
 		public const string TableName = "sample_messages";
 
-		// db pk
-		
+		// db pk		
 		[ProtoMember(1)]
 		public int Id { get; set; }
 

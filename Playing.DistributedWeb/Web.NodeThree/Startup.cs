@@ -7,9 +7,12 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Web.HostedServices;
 using Web.HostedServices.Interfaces;
+using Web.MessagingModels;
 using Web.MessagingModels.Models;
 using Web.MessagingModels.Options;
+using Web.Services.Interfaces;
 using Web.Services.Kafka.Consumers;
+using Web.Services.Rest;
 
 namespace Web.NodeThree
 {
@@ -25,11 +28,14 @@ namespace Web.NodeThree
 		// This method gets called by the runtime. Use this method to add services to the container.
 		public void ConfigureServices(IServiceCollection services)
 		{
-			services.AddSingleton<ISampleMessageConsumer<Ignore>, SampleMessageConsumer>();	
+			services.Configure<KafkaOptions>(Configuration.GetSection("KafkaOptions"));
+			services.Configure<RestTalkOptions>(Configuration.GetSection("RestTalkOptions"));
+
+			services.AddSingleton<IRestSender<SampleMessage>, RestSender>();
+			services.AddSingleton<ISampleMessageConsumer<Ignore>, SampleMessageConsumer>();
 			services.AddSingleton<IKafkaConsumerService, KafkaConsumerService>();
 			services.AddSingleton<IHostedService>(f => f.GetService<IKafkaConsumerService>());
 			
-
 			services.AddControllers();
 			services.AddSwaggerGen(c =>
 			{
@@ -40,8 +46,6 @@ namespace Web.NodeThree
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
 		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 		{
-			var kafkaOptions = Configuration.GetSection("KafkaOptions").Get<KafkaOptions>();
-
 			if (env.IsDevelopment())
 			{
 				app.UseDeveloperExceptionPage();

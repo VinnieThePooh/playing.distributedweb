@@ -13,6 +13,8 @@ namespace Web.NodeThree
 	{
 		public static void Main(string[] args)
 		{
+			Console.Title = "Web.NodeThree";
+
 			CreateHostBuilder(args).Build().Run();
 		}
 

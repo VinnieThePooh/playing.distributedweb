@@ -54,7 +54,8 @@ namespace Web.HostedServices
 				}
 				catch (OperationCanceledException ce)
 				{
-					await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);							
+					await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);
+					
 				}
 				catch (WebSocketException wse)
 				{
@@ -120,7 +121,7 @@ namespace Web.HostedServices
 				await SendMessage(message, stopMessagingToken);
 
 				if (stopMessagingToken.IsCancellationRequested)
-					break;				
+					break;		
 			}
 			
 			await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);

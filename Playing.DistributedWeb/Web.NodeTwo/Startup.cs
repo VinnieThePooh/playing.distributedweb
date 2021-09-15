@@ -52,14 +52,14 @@ namespace Web.NodeTwo
 			//todo: add other options from config
 			var socketOptions = new WebSocketOptions()
 			{
-				KeepAliveInterval = TimeSpan.FromSeconds(webSocketOptions.KeepAliveInterval),				
+				KeepAliveInterval = TimeSpan.FromSeconds(webSocketOptions.KeepAliveInterval),			
 			};
 
 			app.UseWebSockets();
 
 			if (env.IsDevelopment())
 			{
-				app.UseDeveloperExceptionPage();				
+				app.UseDeveloperExceptionPage();			
 			}
 
 			app.UseHttpsRedirection();
@@ -97,13 +97,13 @@ namespace Web.NodeTwo
 			ArraySegment<byte> bytesSegment = new ArraySegment<byte>(buffer);
 			WebSocketReceiveResult result = await webSocket.ReceiveAsync(bytesSegment, CancellationToken.None);
 			
-			var bytes = new List<byte>();			
+			var bytes = new List<byte>();	
 			
 			while (!webSocket.CloseStatus.HasValue)
 			{
 				TraceWebSocketStatus(webSocket);
 
-				bytes.AddRange(bytesSegment.Slice(0, result.Count));				
+				bytes.AddRange(bytesSegment.Slice(0, result.Count));		
 
 				SampleMessage message;
 
@@ -113,13 +113,18 @@ namespace Web.NodeTwo
 					message.NodeTwo_Timestamp = DateTime.Now;
 
 #if DEBUG
-					Debug.WriteLine($"Web.NodeTwo WebSocket received: {message.ToJson()}"); 
+					Console.WriteLine($"Web.NodeTwo WebSocket received: {message.ToJson()}");
 #endif
 
-					var deliveryResult = await producer.ProduceAsync(message, CancellationToken.None);					
-					//Debug.WriteLine(deliveryResult.Status);
+					var deliveryResult = await producer.ProduceAsync(message, CancellationToken.None);
+					Debug.WriteLine(deliveryResult.Status);
 
 					bytes.Clear();
+				}
+
+				if (webSocket.State == WebSocketState.Closed)
+				{
+					Debugger.Break();
 				}
 				
 				if (webSocket.State == WebSocketState.CloseReceived)

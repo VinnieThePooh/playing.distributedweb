@@ -9,6 +9,9 @@ using Web.MessagingModels.Extensions;
 using System.Diagnostics;
 using Confluent.Kafka;
 using Web.MessagingModels;
+using Microsoft.Extensions.Options;
+using Web.MessagingModels.Options;
+using Web.Services.Interfaces;
 
 namespace Web.HostedServices
 {
@@ -16,12 +19,14 @@ namespace Web.HostedServices
 	{
 		private CancellationToken consumingCancellationToken => SampleMessageConsumer.Token;
 
-		public KafkaConsumerService(ISampleMessageConsumer<Ignore> consumer)
+		public KafkaConsumerService(ISampleMessageConsumer<Ignore> consumer, IRestSender<SampleMessage> restSender)
 		{
-			SampleMessageConsumer = consumer;
+			SampleMessageConsumer = consumer ?? throw new ArgumentNullException(nameof(consumer));
+			RestSender = restSender ?? throw new ArgumentNullException(nameof(restSender));
 		}
 
 		public ISampleMessageConsumer<Ignore> SampleMessageConsumer { get; }
+		public IRestSender<SampleMessage> RestSender { get; }
 
 		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 		{
@@ -36,9 +41,15 @@ namespace Web.HostedServices
 					{
 						consumingCancellationToken.ThrowIfCancellationRequested();
 						var consumeResult = SampleMessageConsumer.Consume(consumingCancellationToken);
-						
-						var json = consumeResult.Message.Value.ToJson();
-						Debug.WriteLine($"{++counter}.Got: {json}");
+						var message = consumeResult.Message.Value;
+
+#if DEBUG
+						var json = message.ToJson();
+						var traceMessage = $"{++counter}. Kafka consumer received: {json}";					
+						Console.WriteLine(traceMessage);
+#endif
+						await RestSender.AddToBatch(message);
+
 					}
 					catch (OperationCanceledException e)
 					{						

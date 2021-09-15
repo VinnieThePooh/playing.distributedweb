@@ -14,6 +14,8 @@ namespace Web.NodeTwo
 	{
 		public static async Task Main(string[] args)
 		{
+			Console.Title = "Web.NodeTwo";
+
 			var host = CreateHostBuilder(args).Build();
 
 			var conf = new ConfigurationBuilder()

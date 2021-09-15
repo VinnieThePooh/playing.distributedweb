@@ -12,6 +12,6 @@ namespace Web.MessagingModels.Extensions
 
 			//reflection?
 			return JsonSerializer.Serialize(model, model.GetType());
-		}
+		}		
 	}
 }
