@@ -43,12 +43,13 @@ namespace Web.HostedServices
 			await Task.Yield();
 			while (!stoppingToken.IsCancellationRequested)
 			{
+				var opToken = _stoppingMessagingCts.Token;
 				try
 				{
-					_manualReset.WaitOne();
-					await EnsureSocketInitialized(_stoppingMessagingCts.Token);
+					_manualReset.WaitOne();					
+					await EnsureSocketInitialized(opToken);
 					_lastSessionId = await _messageRepository.GetCachedLastSessionId();
-					await StartMessagingSession(_stoppingMessagingCts.Token, _lastSessionId + 1);
+					await StartMessagingSession(opToken, _lastSessionId + 1);
 
 					if (MessagingOptions.PauseBettweenMessages > 0)
 						await Task.Delay(MessagingOptions.PauseBettweenMessages);
@@ -56,6 +57,9 @@ namespace Web.HostedServices
 				catch (OperationCanceledException ce)	
 				{
 					await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);
+					// and only now we begin to listen carefully for a graceful close
+					// do not begin new session untill close previous one
+					await ListenForGracefulClose(_clientWebSocket);
 				}
 				catch (WebSocketException wse)
 				{
@@ -104,9 +108,7 @@ namespace Web.HostedServices
 
 		private async Task DoMessaging(CancellationToken stopMessagingToken, int sessionId)
 		{			
-			int withinSessionMessageId = 1;
-			
-			var listenTask = ListenForGracefulClose(stopMessagingToken, _clientWebSocket);
+			int withinSessionMessageId = 1;	
 
 			while (_clientWebSocket.State == WebSocketState.Open)
 			{
@@ -126,10 +128,8 @@ namespace Web.HostedServices
 					break;
 			}
 			// initiate a graceful close operation
-			await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
-			// and only now we begin to listen carefully for a graceful close
-			// do not begin new session untill close previous one
-			await listenTask;
+			await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);			
+			stopMessagingToken.ThrowIfCancellationRequested();
 		}
 
 		//todo: add network problems handling (retry)
@@ -143,7 +143,7 @@ namespace Web.HostedServices
 			}
 		}
 
-		private async Task ListenForGracefulClose(CancellationToken stopMessagingToken, ClientWebSocket webSocket)
+		private async Task ListenForGracefulClose(ClientWebSocket webSocket)
 		{
 			var buffer = new byte[4 * 1024];
 			var arraySegment = new ArraySegment<byte>(buffer);
@@ -172,8 +172,7 @@ namespace Web.HostedServices
 					throw;
 				}			
 				
-			}
-			stopMessagingToken.ThrowIfCancellationRequested();
+			}			
 		}
 
 		private async Task SendMessage(SampleMessage message, CancellationToken stopMessagingToken)
@@ -189,18 +188,6 @@ namespace Web.HostedServices
 				bytes = new ArraySegment<byte>(stream.ToArray());
 			}
 			await _clientWebSocket.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None);
-		}
-
-		private async Task SendInitClosingMessage()
-		{
-			ArraySegment<byte> bytes;
-			using (var stream = new MemoryStream())
-			{
-				//JsonSerializer a little bit faster than Newtonsoft.Json
-				await JsonSerializer.SerializeAsync(stream, new CommandMessage { CommandCode = CommandCode.CloseChannel }  , null, CancellationToken.None);
-				bytes = new ArraySegment<byte>(stream.ToArray());
-			}
-			await _clientWebSocket.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None);
-		}
+		}		
 	}
 }
