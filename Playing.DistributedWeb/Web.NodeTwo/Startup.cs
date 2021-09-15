@@ -125,7 +125,7 @@ namespace Web.NodeTwo
 					var deliveryResult = await producer.ProduceAsync(message, CancellationToken.None);
 					bytes.Clear();
 #if DEBUG
-					Console.WriteLine($" Web.NodeTwo: {counter++}. WebSocket server received and kafka producer retransmitted:\n{message.ToJson()}");
+					Console.WriteLine($" Web.NodeTwo: {counter++}. WebSocket server received and kafka producer retransmitted: {message.ToJson()}");
 #endif
 				}
 

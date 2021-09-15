@@ -149,7 +149,7 @@ namespace Web.HostedServices
 			var arraySegment = new ArraySegment<byte>(buffer);
 			
 			var counter = 1;
-			while (webSocket.State == WebSocketState.Open)
+			while (webSocket.State == WebSocketState.Open || webSocket.State == WebSocketState.CloseSent)
 			{
 				Debug.WriteLine($"{counter++}. Listening for WebSocketMessageType.Close command");
 				WebSocketReceiveResult result;
@@ -161,10 +161,9 @@ namespace Web.HostedServices
 					if (result.MessageType == WebSocketMessageType.Close)
 					{						
 						//graceful close completes here
-						//todo: log here result of the conversation:
+						//todo: save conversation statistics here:
 						//	1.Elapsed time
 						//	2.Number of messages sent						
-						await webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
 						break;
 					}
 				}
