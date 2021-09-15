@@ -55,7 +55,7 @@ namespace Web.Services.Rest
 				throw new ObjectDisposedException(nameof(RestSender));
 
 			if (message is null)
-				throw new ArgumentNullException(nameof(message));
+				throw new ArgumentNullException(nameof(message));		
 
 			_internalBatch.Add(message);
 
@@ -73,7 +73,7 @@ namespace Web.Services.Rest
 				throw new ArgumentNullException(nameof(messages));			
 
 			if (_wasDisposed)
-				throw new ObjectDisposedException(nameof(RestSender));
+				throw new ObjectDisposedException(nameof(RestSender));			
 
 			await PostData(messages);
 		}		

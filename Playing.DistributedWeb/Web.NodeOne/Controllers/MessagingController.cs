@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -15,11 +16,12 @@ namespace Web.NodeOne.Controllers
 	public class MessagingController : ControllerBase
 	{
 		private readonly IWebSocketClientService _webSocketClient;
-		private readonly ISampleMessageRepository _messageRepository;
+		private readonly ISampleMessageRepository _messagesRepository;
 
-		public MessagingController(IWebSocketClientService webSocketClient)
+		public MessagingController(IWebSocketClientService webSocketClient, ISampleMessageRepository messagesRepository)
 		{
-			_webSocketClient = webSocketClient;
+			_webSocketClient = webSocketClient ?? throw new System.ArgumentNullException(nameof(webSocketClient));
+			_messagesRepository = messagesRepository ?? throw new System.ArgumentNullException(nameof(messagesRepository));
 		}
 
 		[ProducesResponseType(StatusCodes.Status200OK)]
@@ -47,10 +49,16 @@ namespace Web.NodeOne.Controllers
 		}
 
 
-		[HttpPost("end-roundtrip")]
+		[HttpPost("end-roundtrip-batch")]
 		public async Task<ActionResult> AcceptMessages(IEnumerable<SampleMessage> messages)
 		{
-			Debug.WriteLine($"Received {messages.Count()} messages");
+			var now = DateTime.Now;
+
+			foreach (var message in messages)
+				message.End_Timestamp = now;		
+
+			await _messagesRepository.InsertBatch(messages);
+			Debug.WriteLine($"Received data batch ({messages.Count()} of SampleMessage entity) and successfully persisted it to MariaDb");
 			return Accepted();
 		}
 	}

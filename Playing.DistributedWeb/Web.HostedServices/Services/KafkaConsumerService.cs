@@ -48,6 +48,8 @@ namespace Web.HostedServices
 						var traceMessage = $"{++counter}. Kafka consumer received: {json}";					
 						Console.WriteLine(traceMessage);
 #endif
+
+						message.NodeThree_Timestamp = DateTime.Now;
 						await RestSender.AddToBatch(message);
 
 					}

@@ -4,6 +4,9 @@ using Web.DataAccess.Interfaces;
 using Web.MessagingModels;
 using MySqlConnector;
 using System.Collections.Generic;
+using System.Text;
+using System.Linq;
+using System.Globalization;
 
 namespace Web.DataAccess.Repositories
 {
@@ -38,9 +41,27 @@ namespace Web.DataAccess.Repositories
 			return Task.CompletedTask;
 		}
 
-		public Task InsertBatch(IEnumerable<SampleMessage> messages)
+		public async Task InsertBatch(IEnumerable<SampleMessage> messages)
 		{
-			throw new NotImplementedException();
+			if (messages is null)
+				throw new ArgumentNullException(nameof(messages));
+
+			var builder = new StringBuilder(@"INSERT INTO sample_messages
+											  (SessionId, WithinSessionMessageId, NodeOne_Timestamp, NodeTwo_Timestamp, NodeThree_Timestamp, End_Timestamp) values");
+
+			var count  = messages.Count();
+			var counter = 1;
+			foreach (var message in messages)
+			{
+				builder.AppendLine(GetInsertFragment(message, counter++ == count));
+			}
+
+			var sql = builder.ToString();
+			using var connection = new MySqlConnection(_connectionString);
+			var command = connection.CreateCommand();			
+			command.CommandText = sql;
+			await connection.OpenAsync();
+			await command.ExecuteNonQueryAsync();
 		}
 
 		public static Task SetLastSessionId(int sessionId)
@@ -55,6 +76,17 @@ namespace Web.DataAccess.Repositories
 		{
 			SetLastSessionId(newSessionId);
 			return Task.CompletedTask;
-		}		
+		}
+		
+		private string GetInsertFragment(SampleMessage message, bool isLastMessage)
+		{			
+			var cinfo = CultureInfo.InvariantCulture;
+			return $@"({message.SessionId},
+					   {message.WithinSessionMessageId},
+					   '{(message.NodeOne_Timestamp.HasValue ? message.NodeOne_Timestamp.Value.ToString("s" , cinfo): null)}',
+					   '{(message.NodeTwo_Timestamp.HasValue ? message.NodeTwo_Timestamp.Value.ToString("s", cinfo) : null)}',
+					   '{(message.NodeThree_Timestamp.HasValue ? message.NodeThree_Timestamp.Value.ToString("s", cinfo) : null)}',
+					   '{(message.End_Timestamp.HasValue ? message.End_Timestamp.Value.ToString("s", cinfo) : null)}'){(isLastMessage ? ";": ",")}";
+		}
 	}
 }
