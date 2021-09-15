@@ -20,6 +20,7 @@ using Web.MessagingModels.Models;
 using Web.Services.Kafka.Producers;
 using Confluent.Kafka;
 using Web.MessagingModels.Extensions;
+using System.Runtime.CompilerServices;
 
 namespace Web.NodeTwo
 {
@@ -76,7 +77,6 @@ namespace Web.NodeTwo
 			//todo: move to a controller with a static route
 			app.Use(async (context, next) => 
 			{
-
 				if (context.Request.Path != socketPath)
 				{
 					await next();
@@ -86,8 +86,11 @@ namespace Web.NodeTwo
 				if (!context.WebSockets.IsWebSocketRequest)
 					context.Response.StatusCode = StatusCodes.Status400BadRequest;
 
+				context.Response.StatusCode = StatusCodes.Status101SwitchingProtocols;
+				context.Response.Headers.Add("Upgrade", "websocket");
+
 				var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-				await HandleWebSocketDataDemo(context, webSocket, kafkaProducer);					
+				await HandleWebSocketDataDemo(context, webSocket, kafkaProducer);	
 			});
 		}
 		
@@ -97,51 +100,49 @@ namespace Web.NodeTwo
 			ArraySegment<byte> bytesSegment = new ArraySegment<byte>(buffer);
 			WebSocketReceiveResult result = await webSocket.ReceiveAsync(bytesSegment, CancellationToken.None);
 			
-			var bytes = new List<byte>();	
-			
-			while (!webSocket.CloseStatus.HasValue)
-			{
-				//TraceWebSocketStatus(webSocket);
+			var bytes = new List<byte>();
 
-				bytes.AddRange(bytesSegment.Slice(0, result.Count));		
+			var counter = 1;
+
+			while (webSocket.State == WebSocketState.Open || webSocket.State == WebSocketState.CloseReceived)
+			{
+				bytes.AddRange(bytesSegment.Slice(0, result.Count));
 
 				SampleMessage message;
+
+				if (CheckForCloseIntention(ref result))
+				{
+					// confirm close handshake
+					await webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+					break;
+				}
 
 				if (result.EndOfMessage)
 				{
 					message = (SampleMessage)await JsonSerializer.DeserializeAsync(new MemoryStream(bytes.ToArray()), typeof(SampleMessage), null, CancellationToken.None);
 					message.NodeTwo_Timestamp = DateTime.Now;
 
-#if DEBUG
-					//Console.WriteLine($"Web.NodeTwo WebSocket received: {message.ToJson()}");
-#endif
-
 					var deliveryResult = await producer.ProduceAsync(message, CancellationToken.None);
 					bytes.Clear();
+#if DEBUG
+					Console.WriteLine($" Web.NodeTwo: {counter++}. WebSocket server received and kafka producer retransmitted:\n{message.ToJson()}");
+#endif
 				}
 
-				if (webSocket.State == WebSocketState.Closed)
-				{
-					Debugger.Break();
-				}
-				
-				if (webSocket.State == WebSocketState.CloseReceived)
-				{
-					Debugger.Break();
+				result = await webSocket.ReceiveAsync(bytesSegment, CancellationToken.None);
 
+				if (CheckForCloseIntention(ref result))
+				{					
 					await webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
 					break;
 				}
-				
-				result = await webSocket.ReceiveAsync(bytesSegment, CancellationToken.None);
-			}
-			//await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
+			}			
 		}
 
-		private void TraceWebSocketStatus(WebSocket webSocket)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool CheckForCloseIntention(ref WebSocketReceiveResult receiveResult)
 		{
-			Console.WriteLine($"ServerSocket close status: {(webSocket.CloseStatus.HasValue ? webSocket.CloseStatus.Value: "NULL")}");
-			Console.WriteLine($"ServerSocket state: {webSocket.State}");
+			return receiveResult.CloseStatus != null || receiveResult.MessageType == WebSocketMessageType.Close;
 		}
 	}
 }

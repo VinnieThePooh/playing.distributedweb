@@ -15,6 +15,7 @@ namespace Web.NodeTwo
 		public static async Task Main(string[] args)
 		{
 			Console.Title = "Web.NodeTwo";
+			AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
 			var host = CreateHostBuilder(args).Build();
 
@@ -27,6 +28,12 @@ namespace Web.NodeTwo
 			await EnsureKafkaTopicExists(host, options?.TopicName);
 
 			host.Run();
+		}
+
+		private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+		{
+			//todo: log here
+			Console.WriteLine($"Unhandled exception: {e.ExceptionObject}");
 		}
 
 		public static IHostBuilder CreateHostBuilder(string[] args) =>

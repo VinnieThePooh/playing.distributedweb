@@ -1,11 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Web.NodeThree
 {
@@ -14,8 +9,16 @@ namespace Web.NodeThree
 		public static void Main(string[] args)
 		{
 			Console.Title = "Web.NodeThree";
+			AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
-			CreateHostBuilder(args).Build().Run();
+			var host = CreateHostBuilder(args).Build();
+			host.Run();
+		}
+
+		private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+		{
+			//todo: log here
+			Console.WriteLine($"Unhandled exception: {e.ExceptionObject}");
 		}
 
 		public static IHostBuilder CreateHostBuilder(string[] args) =>
@@ -24,5 +27,7 @@ namespace Web.NodeThree
 				{
 					webBuilder.UseStartup<Startup>();
 				});
+
+
 	}
 }

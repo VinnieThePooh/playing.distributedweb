@@ -11,6 +11,7 @@ using Web.DataAccess.Interfaces;
 using System.Text.Json;
 using System.IO;
 using Web.MessagingModels.Models;
+using System.Diagnostics;
 
 namespace Web.HostedServices
 {
@@ -52,9 +53,9 @@ namespace Web.HostedServices
 					if (MessagingOptions.PauseBettweenMessages > 0)
 						await Task.Delay(MessagingOptions.PauseBettweenMessages);
 				}
-				catch (OperationCanceledException ce)
+				catch (OperationCanceledException ce)	
 				{
-					await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);			
+					await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);
 				}
 				catch (WebSocketException wse)
 				{
@@ -104,8 +105,10 @@ namespace Web.HostedServices
 		private async Task DoMessaging(CancellationToken stopMessagingToken, int sessionId)
 		{			
 			int withinSessionMessageId = 1;
+			
+			var listenTask = ListenForGracefulClose(stopMessagingToken, _clientWebSocket);
 
-			while (true)
+			while (_clientWebSocket.State == WebSocketState.Open)
 			{
 				if (stopMessagingToken.IsCancellationRequested)
 					break;
@@ -120,11 +123,13 @@ namespace Web.HostedServices
 				await SendMessage(message, stopMessagingToken);
 
 				if (stopMessagingToken.IsCancellationRequested)
-					break;		
+					break;
 			}
-			
-			await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
-			stopMessagingToken.ThrowIfCancellationRequested();
+			// initiate a graceful close operation
+			await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+			// and only now we begin to listen carefully for a graceful close
+			// do not begin new session untill close previous one
+			await ListenForGracefulClose(stopMessagingToken, _clientWebSocket);
 		}
 
 		//todo: add network problems handling (retry)
@@ -134,8 +139,43 @@ namespace Web.HostedServices
 			if (_clientWebSocket == null)
 			{
 				_clientWebSocket = new ClientWebSocket();
-				await _clientWebSocket.ConnectAsync(new Uri(ConnectionOptions.SocketUrl), stopMessagingToken);				
+				await _clientWebSocket.ConnectAsync(new Uri(ConnectionOptions.SocketUrl), stopMessagingToken);
 			}
+		}
+
+		private async Task ListenForGracefulClose(CancellationToken stopMessagingToken, ClientWebSocket webSocket)
+		{
+			var buffer = new byte[4 * 1024];
+			var arraySegment = new ArraySegment<byte>(buffer);
+			
+			var counter = 1;
+			while (webSocket.State == WebSocketState.Open)
+			{
+				Debug.WriteLine($"{counter++}. Listening for WebSocketMessageType.Close command");
+				WebSocketReceiveResult result;
+
+				try
+				{
+					result = await webSocket.ReceiveAsync(arraySegment, CancellationToken.None);		
+					// AAAARGGHH!! This never happens!
+					// so we can't rely on
+					if (result.MessageType == WebSocketMessageType.Close)
+					{						
+						//graceful close completes here
+						//todo: log here result of the conversation:
+						//	1.Elapsed time
+						//	2.Number of messages sent						
+						await webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
+						break;
+					}
+				}
+				catch (Exception)
+				{
+					throw;
+				}			
+				
+			}
+			stopMessagingToken.ThrowIfCancellationRequested();
 		}
 
 		private async Task SendMessage(SampleMessage message, CancellationToken stopMessagingToken)

@@ -42,6 +42,7 @@ namespace Web.HostedServices
 						consumingCancellationToken.ThrowIfCancellationRequested();
 						var consumeResult = SampleMessageConsumer.Consume(consumingCancellationToken);
 						var message = consumeResult.Message.Value;
+						message.NodeThree_Timestamp = DateTime.Now;
 
 #if DEBUG
 						var json = message.ToJson();
@@ -49,7 +50,7 @@ namespace Web.HostedServices
 						Console.WriteLine(traceMessage);
 #endif
 
-						message.NodeThree_Timestamp = DateTime.Now;
+						
 						await RestSender.AddToBatch(message);
 
 					}
