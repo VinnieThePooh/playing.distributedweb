@@ -129,7 +129,7 @@ namespace Web.HostedServices
 			await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
 			// and only now we begin to listen carefully for a graceful close
 			// do not begin new session untill close previous one
-			await ListenForGracefulClose(stopMessagingToken, _clientWebSocket);
+			await listenTask;
 		}
 
 		//todo: add network problems handling (retry)
@@ -156,9 +156,8 @@ namespace Web.HostedServices
 
 				try
 				{
-					result = await webSocket.ReceiveAsync(arraySegment, CancellationToken.None);		
-					// AAAARGGHH!! This never happens!
-					// so we can't rely on
+					result = await webSocket.ReceiveAsync(arraySegment, CancellationToken.None);
+					
 					if (result.MessageType == WebSocketMessageType.Close)
 					{						
 						//graceful close completes here
