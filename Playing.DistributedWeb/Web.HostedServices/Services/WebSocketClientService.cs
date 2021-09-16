@@ -145,7 +145,7 @@ namespace Web.HostedServices
 
 			// no need to depend on possibly complex state of the Network object (_clientWebSocket.State)
 			// cause of we only send data
-			// so, much better to depend on plain and simple CancellationToken (i.e. no network-bound local state)	
+			// so, much better to depend on plain and simple CancellationToken (i.e. no network-bound local state)
 			while (!stopMessagingToken.IsCancellationRequested)
 			{				
 				var message = new SampleMessage
@@ -174,7 +174,7 @@ namespace Web.HostedServices
 			Console.WriteLine("Statistics:");
 			Console.WriteLine($"{new string(' ', 3)}Duration:");
 			Console.WriteLine($"{new string(' ', 3)}1.Formal: {_statistics.FormalDuration}s");
-			Console.WriteLine($"{new string(' ', 3)}2.Actual: {_statistics.ActualDuration} ms ({_statistics.ActualDuration/1000:'N1'}s)");
+			Console.WriteLine($"{new string(' ', 3)}2.Actual: {_statistics.ActualDuration} ms ({_statistics.ActualDuration/1000:N1}s)");
 
 			// initiate a graceful close operation
 			await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
@@ -220,8 +220,8 @@ namespace Web.HostedServices
 						_isWaitingForGracefulClose = false;
 						_stopwatch.Stop();
 						_statistics.GracefulCloseInterval = _stopwatch.ElapsedMilliseconds;
-						Console.WriteLine($"{new string(' ', 3)}3.Graceful close event after: {_statistics.GracefulCloseInterval} ms ({_statistics.GracefulCloseInterval/1000:'N1'}s)");
-						Console.WriteLine($"{new string(' ', 3)}4.Total session duration: {_statistics.TotalSessionTime} ms ({_statistics.TotalSessionTime/1000:'N1'}s)");
+						Console.WriteLine($"{new string(' ', 3)}3.Graceful close event after: {_statistics.GracefulCloseInterval} ms ({_statistics.GracefulCloseInterval/1000:N1}s)");
+						Console.WriteLine($"{new string(' ', 3)}4.Total session duration: {_statistics.TotalSessionTime} ms ({_statistics.TotalSessionTime/1000:N1}s)");
 						break;
 					}
 				}
