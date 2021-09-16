@@ -12,6 +12,7 @@ using System.Text.Json;
 using System.IO;
 using Web.MessagingModels.Models;
 using System.Diagnostics;
+using Web.MessagingModels.Extensions.Tasks;
 
 namespace Web.HostedServices
 {
@@ -54,14 +55,14 @@ namespace Web.HostedServices
 				try
 				{
 					_manualReset.WaitOne();
+					_lastSessionId = await _messageRepository.GetCachedLastSessionId();
 
 					//todo: use NLog or Serilog for logging
-					Console.WriteLine($"WebSocketClientService has begun new session: {_lastSessionId + 1}");
+					Console.WriteLine($"[WebSocketClientService]: Service has begun new session: {_lastSessionId + 1}");
 
 					_stopwatch.Start() ;
 					opToken = _stoppingMessagingCts.Token;
-					await EnsureSocketInitialized(opToken);
-					_lastSessionId = await _messageRepository.GetCachedLastSessionId();
+					await EnsureSocketInitialized(opToken);				
 					await StartMessagingSession(opToken, _lastSessionId + 1);
 
 					if (MessagingOptions.PauseBettweenMessages > 0)
@@ -91,7 +92,17 @@ namespace Web.HostedServices
 		private async Task StartMessagingSession(CancellationToken stopMessagingToken, int newSessionId)
 		{			
 			var workingTask = Task.Run(() => DoMessaging(stopMessagingToken, newSessionId), stopMessagingToken);
-			await Task.Delay(MessagingOptions.Duration * 1000);
+
+			var ms = MessagingOptions.Duration * 1000;
+
+			var delay = Task.Delay(ms);
+
+			//not sure ConfigureAwait(false) works with TaskScheduler.Default (highly likely NO)
+			await delay.WithStopwatchRacing(TimeSpan.FromMilliseconds(ms)).ConfigureAwait(false);
+
+#if DEBUG
+			Console.WriteLine($"[WebSocketClientService]: Specified session interval expired after: {_stopwatch.ElapsedMilliseconds} ms");
+#endif
 			await StopMessaging();
 			await workingTask;
 		}
@@ -113,7 +124,7 @@ namespace Web.HostedServices
 				return false;
 
 			_manualReset.Reset();
-			_stoppingMessagingCts.Cancel();			
+			_stoppingMessagingCts.Cancel();		
 			_stoppingMessagingCts.Dispose();
 			_stoppingMessagingCts = null;			
 			return true;
@@ -128,7 +139,6 @@ namespace Web.HostedServices
 			// so, much better to depend on plain and simple CancellationToken (i.e. no network-bound local state)			
 			while (!stopMessagingToken.IsCancellationRequested)
 			{				
-
 				var message = new SampleMessage
 				{
 					NodeOne_Timestamp = DateTime.Now,
@@ -140,7 +150,9 @@ namespace Web.HostedServices
 
 				if (stopMessagingToken.IsCancellationRequested)
 					break;
-			}
+			}			
+
+			//WARNING: actual session interval is much longer than specified (38.5 seconds vs 5s from config)
 
 			// session completes here (this side only)
 			// save statistics here
@@ -149,8 +161,9 @@ namespace Web.HostedServices
 			_statistics.MessagesHandled = withinSessionMessageId;
 			_stopwatch.Reset();
 
+			//todo: write log asyncronously?
 			//todo: use NLog or Serilog for logging
-			Console.WriteLine($"WebSocketClientService ended session: {sessionId}");
+			Console.WriteLine($"[WebSocketClientService]: Service ended session: {sessionId}");
 			Console.WriteLine("Statistics:");
 			Console.WriteLine($"{new string(' ', 3)}Duration:");
 			Console.WriteLine($"{new string(' ', 3)}1.Formal: {_statistics.FormalDuration}s");
