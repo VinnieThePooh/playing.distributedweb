@@ -23,6 +23,8 @@ namespace Web.HostedServices
 		private ManualResetEvent _manualReset = new ManualResetEvent(false);
 		private readonly ISampleMessageRepository _messageRepository;
 		private int _lastSessionId;
+		private SendingStatistics _statistics;
+		private Stopwatch _stopwatch;
 
 		public WebSocketClientService(IOptions<MessagingOptions> options, IOptions<WebSocketConnectionOptions> connectionOptions, ISampleMessageRepository messageRepository)
 		{
@@ -41,12 +43,22 @@ namespace Web.HostedServices
 		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 		{
 			await Task.Yield();
+
+			// only once, it is not changed in runtime
+			_statistics.FormalDuration = MessagingOptions.Duration;
+			_stopwatch = new Stopwatch();
+
 			while (!stoppingToken.IsCancellationRequested)
 			{
 				CancellationToken opToken;
 				try
 				{
 					_manualReset.WaitOne();
+
+					//todo: use NLog or Serilog for logging
+					Console.WriteLine($"WebSocketClientService has begun new session: {_lastSessionId + 1}");
+
+					_stopwatch.Start() ;
 					opToken = _stoppingMessagingCts.Token;
 					await EnsureSocketInitialized(opToken);
 					_lastSessionId = await _messageRepository.GetCachedLastSessionId();
@@ -55,12 +67,12 @@ namespace Web.HostedServices
 					if (MessagingOptions.PauseBettweenMessages > 0)
 						await Task.Delay(MessagingOptions.PauseBettweenMessages);
 				}
-				catch (OperationCanceledException ce)	
+				catch (OperationCanceledException ce)
 				{
 					await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);
 					// and only now we begin to listen carefully for a graceful close
-					// do not begin new session untill close previous one
-					await ListenForGracefulClose(_clientWebSocket);
+					// do not begin new session until graceful close previous one
+					await ListenForGracefulClose(_clientWebSocket);					
 				}
 				catch (WebSocketException wse)
 				{
@@ -109,12 +121,13 @@ namespace Web.HostedServices
 
 		private async Task DoMessaging(CancellationToken stopMessagingToken, int sessionId)
 		{			
-			int withinSessionMessageId = 1;	
+			int withinSessionMessageId = 1;
 
-			while (_clientWebSocket.State == WebSocketState.Open)
-			{
-				if (stopMessagingToken.IsCancellationRequested)
-					break;
+			// no need to depend on possibly complex state of the Network object (_clientWebSocket.State)
+			// cause of we only send data
+			// so, much better to depend on plain and simple CancellationToken (i.e. no network-bound local state)			
+			while (!stopMessagingToken.IsCancellationRequested)
+			{				
 
 				var message = new SampleMessage
 				{
@@ -128,6 +141,21 @@ namespace Web.HostedServices
 				if (stopMessagingToken.IsCancellationRequested)
 					break;
 			}
+
+			// session completes here (this side only)
+			// save statistics here
+			_stopwatch.Stop();
+			_statistics.ActualDuration = _stopwatch.ElapsedMilliseconds;
+			_statistics.MessagesHandled = withinSessionMessageId;
+			_stopwatch.Reset();
+
+			//todo: use NLog or Serilog for logging
+			Console.WriteLine($"WebSocketClientService ended session: {sessionId}");
+			Console.WriteLine("Statistics:");
+			Console.WriteLine($"{new string(' ', 3)}Duration:");
+			Console.WriteLine($"{new string(' ', 3)}1.Formal: {_statistics.FormalDuration}s");
+			Console.WriteLine($"{new string(' ', 3)}2.Actual: {_statistics.ActualDuration}ms");
+
 			// initiate a graceful close operation
 			await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);			
 			stopMessagingToken.ThrowIfCancellationRequested();
@@ -150,7 +178,7 @@ namespace Web.HostedServices
 			var arraySegment = new ArraySegment<byte>(buffer);
 			
 			var counter = 1;
-			while (webSocket.State == WebSocketState.Open || webSocket.State == WebSocketState.CloseSent)
+			while (webSocket.State == WebSocketState.CloseSent)
 			{
 				Debug.WriteLine($"{counter++}. Listening for WebSocketMessageType.Close command");
 				WebSocketReceiveResult result;
@@ -161,11 +189,8 @@ namespace Web.HostedServices
 					
 					if (result.MessageType == WebSocketMessageType.Close)
 					{						
-						//graceful close completes here
-						//todo: save conversation statistics here:
-						//	1.Elapsed time
-						//	2.Number of messages sent						
-						break;
+						//graceful close completes here											
+						break;  
 					}
 				}
 				catch (Exception)

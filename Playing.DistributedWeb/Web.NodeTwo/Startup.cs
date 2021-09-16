@@ -99,10 +99,14 @@ namespace Web.NodeTwo
 			var buffer = new byte[1024 * 4];
 			ArraySegment<byte> bytesSegment = new ArraySegment<byte>(buffer);
 			WebSocketReceiveResult result = await webSocket.ReceiveAsync(bytesSegment, CancellationToken.None);
+			ReceivingStatistics statistics = new();
 			
 			var bytes = new List<byte>();
 
 			var counter = 1;
+			int? sessionId = null;
+
+			Stopwatch sw = Stopwatch.StartNew();
 
 			while (webSocket.State == WebSocketState.Open || webSocket.State == WebSocketState.CloseReceived)
 			{
@@ -112,6 +116,9 @@ namespace Web.NodeTwo
 
 				if (CheckForCloseIntention(ref result))
 				{
+					sw.Stop();
+					statistics.ActualDuration = sw.ElapsedMilliseconds;
+
 					// confirm close handshake
 					await webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
 					break;
@@ -121,6 +128,9 @@ namespace Web.NodeTwo
 				{
 					message = (SampleMessage)await JsonSerializer.DeserializeAsync(new MemoryStream(bytes.ToArray()), typeof(SampleMessage), null, CancellationToken.None);
 					message.NodeTwo_Timestamp = DateTime.Now;
+					if (sessionId is null)
+						sessionId = message.SessionId;
+					statistics.MessagesReceived++;
 
 					var deliveryResult = await producer.ProduceAsync(message, CancellationToken.None);
 					bytes.Clear();
@@ -132,11 +142,20 @@ namespace Web.NodeTwo
 				result = await webSocket.ReceiveAsync(bytesSegment, CancellationToken.None);
 
 				if (CheckForCloseIntention(ref result))
-				{					
+				{
+					sw.Stop();
+					statistics.ActualDuration = sw.ElapsedMilliseconds;
 					await webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
 					break;
 				}
-			}			
+			}
+
+			//session ends here
+			//todo: use NLog or Serilog for logging
+			Console.WriteLine($"Server WebSocket ended session: {sessionId}");
+			Console.WriteLine("Statistics:");						
+			Console.WriteLine($"{new string(' ', 3)}1.Duration: {statistics.ActualDuration}ms");
+			Console.WriteLine($"{new string(' ', 3)}2.Messages received: {statistics.MessagesReceived}");
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

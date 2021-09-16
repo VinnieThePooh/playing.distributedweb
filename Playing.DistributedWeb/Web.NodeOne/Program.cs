@@ -27,7 +27,7 @@ namespace Web.NodeOne
 
 			var host = CreateHostBuilder(args).Build();
 
-			var repo = (ISampleMessageRepository)host.Services.GetService(typeof(ISampleMessageRepository));			
+			var repo = (ISampleMessageRepository)host.Services.GetService(typeof(ISampleMessageRepository));		
 			await repo.SetCachedLastSessionId(await repo.GetLastSessionId());
 			host.Run();				
 		}
