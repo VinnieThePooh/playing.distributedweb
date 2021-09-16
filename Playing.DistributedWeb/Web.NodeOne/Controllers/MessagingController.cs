@@ -16,7 +16,7 @@ namespace Web.NodeOne.Controllers
 	public class MessagingController : ControllerBase
 	{
 		private readonly IWebSocketClientService _webSocketClient;
-		private readonly ISampleMessageRepository _messagesRepository;
+		private readonly ISampleMessageRepository _messagesRepository;		
 
 		public MessagingController(IWebSocketClientService webSocketClient, ISampleMessageRepository messagesRepository)
 		{
@@ -29,10 +29,12 @@ namespace Web.NodeOne.Controllers
 		[HttpGet("start")]		
 		public async Task<IActionResult> StartMessaging()
 		{
-			//todo: return Ok only after successful connect or after continuing sending
-			if (!await _webSocketClient.StartMessaging())
-				return BadRequest("WebSocketClientService is already busy now");
-
+			var result = await _webSocketClient.StartMessaging();
+			if (!result.IsSucceeded)
+			{
+				var prefix = "[WebSocketClientService]";
+				return BadRequest($"{prefix}: {result.ResultMessage}");
+			}
 			return Ok("Messaging started");
 		}
 
@@ -42,9 +44,12 @@ namespace Web.NodeOne.Controllers
 		[ProducesResponseType(StatusCodes.Status400BadRequest)]
 		public async Task<IActionResult> StopMessaging()
 		{
-			if (!await _webSocketClient.StopMessaging())
-				return BadRequest("WebSocketClientService is already stopped");
-
+			var res = await _webSocketClient.StopMessaging();
+			if (!res.IsSucceeded)
+			{
+				var prefix = "[WebSocketClientService]";
+				return BadRequest($"{prefix}: {res.ResultMessage}");
+			}
 			return Ok("Messaging stopped");
 		}
 

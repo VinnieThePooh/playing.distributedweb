@@ -13,6 +13,7 @@ using System.IO;
 using Web.MessagingModels.Models;
 using System.Diagnostics;
 using Web.MessagingModels.Extensions.Tasks;
+using Web.HostedServices.Models;
 
 namespace Web.HostedServices
 {
@@ -26,6 +27,8 @@ namespace Web.HostedServices
 		private int _lastSessionId;
 		private SendingStatistics _statistics;
 		private Stopwatch _stopwatch;
+		//todo: instead of this add State as enum with of states
+		private bool _isWaitingForGracefulClose = false;
 
 		public WebSocketClientService(IOptions<MessagingOptions> options, IOptions<WebSocketConnectionOptions> connectionOptions, ISampleMessageRepository messageRepository)
 		{
@@ -38,6 +41,7 @@ namespace Web.HostedServices
 
 		public WebSocketConnectionOptions ConnectionOptions { get; }
 
+		//todo: instead of this add State as enum with of states
 		public bool IsMessaging => _stoppingMessagingCts != null;
 
 
@@ -45,8 +49,8 @@ namespace Web.HostedServices
 		{
 			await Task.Yield();
 
-			// only once, it is not changed in runtime
-			_statistics.FormalDuration = MessagingOptions.Duration;
+			// only once: MessagingOptions.Duration is not changed in runtime
+			_statistics = new SendingStatistics(MessagingOptions.Duration);
 			_stopwatch = new Stopwatch();
 
 			while (!stoppingToken.IsCancellationRequested)
@@ -73,7 +77,7 @@ namespace Web.HostedServices
 					await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);
 					// and only now we begin to listen carefully for a graceful close
 					// do not begin new session until graceful close previous one
-					await ListenForGracefulClose(_clientWebSocket);					
+					await ListenForGracefulClose(_clientWebSocket);			
 				}
 				catch (WebSocketException wse)
 				{
@@ -108,26 +112,31 @@ namespace Web.HostedServices
 		}
 
 
-		public async Task<bool> StartMessaging()
+		public async ValueTask<OperResult> StartMessaging()
 		{
+			//todo: instead of this check state (will be added later) object:
 			if (_stoppingMessagingCts != null)
-				return false;
+				return new OperResult(OperResult.Messages.SendingData);
+
+			if (_isWaitingForGracefulClose)
+				return new OperResult(OperResult.Messages.WaitingForGracefulClose);
 			
 			_stoppingMessagingCts = new CancellationTokenSource();
 			_manualReset.Set();
-			return true;
+			return OperResult.Succeeded;
 		}
 
-		public async Task<bool> StopMessaging()
+		public async ValueTask<OperResult> StopMessaging()
 		{
+			//todo: instead of this check state (will be added later) object:
 			if (_stoppingMessagingCts == null)
-				return false;
+				return new OperResult(OperResult.Messages.AlreadyStopped);
 
 			_manualReset.Reset();
 			_stoppingMessagingCts.Cancel();		
 			_stoppingMessagingCts.Dispose();
-			_stoppingMessagingCts = null;			
-			return true;
+			_stoppingMessagingCts = null;
+			return OperResult.Succeeded;
 		}		
 
 		private async Task DoMessaging(CancellationToken stopMessagingToken, int sessionId)
@@ -136,7 +145,7 @@ namespace Web.HostedServices
 
 			// no need to depend on possibly complex state of the Network object (_clientWebSocket.State)
 			// cause of we only send data
-			// so, much better to depend on plain and simple CancellationToken (i.e. no network-bound local state)			
+			// so, much better to depend on plain and simple CancellationToken (i.e. no network-bound local state)	
 			while (!stopMessagingToken.IsCancellationRequested)
 			{				
 				var message = new SampleMessage
@@ -153,13 +162,11 @@ namespace Web.HostedServices
 			}			
 
 			//WARNING: actual session interval is much longer than specified (38.5 seconds vs 5s from config)
-
 			// session completes here (this side only)
 			// save statistics here
 			_stopwatch.Stop();
 			_statistics.ActualDuration = _stopwatch.ElapsedMilliseconds;
-			_statistics.MessagesHandled = withinSessionMessageId;
-			_stopwatch.Reset();
+			_statistics.MessagesHandled = withinSessionMessageId;			
 
 			//todo: write log asyncronously?
 			//todo: use NLog or Serilog for logging
@@ -167,10 +174,16 @@ namespace Web.HostedServices
 			Console.WriteLine("Statistics:");
 			Console.WriteLine($"{new string(' ', 3)}Duration:");
 			Console.WriteLine($"{new string(' ', 3)}1.Formal: {_statistics.FormalDuration}s");
-			Console.WriteLine($"{new string(' ', 3)}2.Actual: {_statistics.ActualDuration}ms");
+			Console.WriteLine($"{new string(' ', 3)}2.Actual: {_statistics.ActualDuration} ms ({_statistics.ActualDuration/1000:'N1'}s)");
 
 			// initiate a graceful close operation
-			await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);			
+			await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+
+			//todo: instead of set new State here
+			_isWaitingForGracefulClose = true;
+
+			//continue to measure graceful close interval
+			_stopwatch.Restart();
 			stopMessagingToken.ThrowIfCancellationRequested();
 		}
 
@@ -201,9 +214,15 @@ namespace Web.HostedServices
 					result = await webSocket.ReceiveAsync(arraySegment, CancellationToken.None);
 					
 					if (result.MessageType == WebSocketMessageType.Close)
-					{						
-						//graceful close completes here											
-						break;  
+					{
+						//graceful close completes here
+						//todo: later just set new State here
+						_isWaitingForGracefulClose = false;
+						_stopwatch.Stop();
+						_statistics.GracefulCloseInterval = _stopwatch.ElapsedMilliseconds;
+						Console.WriteLine($"{new string(' ', 3)}3.Graceful close event after: {_statistics.GracefulCloseInterval} ms ({_statistics.GracefulCloseInterval/1000:'N1'}s)");
+						Console.WriteLine($"{new string(' ', 3)}4.Total session duration: {_statistics.TotalSessionTime} ms ({_statistics.TotalSessionTime/1000:'N1'}s)");
+						break;
 					}
 				}
 				catch (Exception)
