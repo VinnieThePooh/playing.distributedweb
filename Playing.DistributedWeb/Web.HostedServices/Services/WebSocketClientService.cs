@@ -166,15 +166,15 @@ namespace Web.HostedServices
 			// save statistics here
 			_stopwatch.Stop();
 			_statistics.ActualDuration = _stopwatch.ElapsedMilliseconds;
-			_statistics.MessagesHandled = withinSessionMessageId;			
+			_statistics.MessagesHandled = withinSessionMessageId;
 
 			//todo: write log asyncronously?
 			//todo: use NLog or Serilog for logging
 			Console.WriteLine($"[WebSocketClientService]: Service ended session: {sessionId}");
 			Console.WriteLine("Statistics:");
-			Console.WriteLine($"{new string(' ', 3)}Duration:");
+			Console.WriteLine($"{new string(' ', 3)}Data sending duration:");
 			Console.WriteLine($"{new string(' ', 3)}1.Formal: {_statistics.FormalDuration}s");
-			Console.WriteLine($"{new string(' ', 3)}2.Actual: {_statistics.ActualDuration} ms ({_statistics.ActualDuration/1000:N1}s)");
+			Console.WriteLine($"{new string(' ', 3)}2.Actual: {_statistics.ActualDuration} ms ({(double)_statistics.ActualDuration/1000:N1}s)");
 
 			// initiate a graceful close operation
 			await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
@@ -220,8 +220,10 @@ namespace Web.HostedServices
 						_isWaitingForGracefulClose = false;
 						_stopwatch.Stop();
 						_statistics.GracefulCloseInterval = _stopwatch.ElapsedMilliseconds;
-						Console.WriteLine($"{new string(' ', 3)}3.Graceful close event after: {_statistics.GracefulCloseInterval} ms ({_statistics.GracefulCloseInterval/1000:N1}s)");
-						Console.WriteLine($"{new string(' ', 3)}4.Total session duration: {_statistics.TotalSessionTime} ms ({_statistics.TotalSessionTime/1000:N1}s)");
+						var closeInt = (double)_statistics.GracefulCloseInterval / 1000;
+						var totalTime = (double)_statistics.TotalSessionTime / 1000;
+						Console.WriteLine($"{new string(' ', 3)}3.Graceful close event after: {_statistics.GracefulCloseInterval} ms ({closeInt:N1}s, {closeInt/60:N1}m)");
+						Console.WriteLine($"{new string(' ', 3)}4.Total session duration: {_statistics.TotalSessionTime} ms ({totalTime:N1}s, {totalTime / 60:N1}m)");
 						break;
 					}
 				}
