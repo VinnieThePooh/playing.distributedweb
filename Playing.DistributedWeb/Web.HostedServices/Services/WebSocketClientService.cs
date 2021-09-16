@@ -28,7 +28,7 @@ namespace Web.HostedServices
 		private SendingStatistics _statistics;
 		private Stopwatch _stopwatch;
 		//todo: instead of this add State as enum with of states
-		private bool _isWaitingForGracefulClose = false;
+		private bool _isWaitingForGracefulClose = false;		
 
 		public WebSocketClientService(IOptions<MessagingOptions> options, IOptions<WebSocketConnectionOptions> connectionOptions, ISampleMessageRepository messageRepository)
 		{
@@ -60,7 +60,7 @@ namespace Web.HostedServices
 				{
 					_manualReset.WaitOne();
 					_lastSessionId = await _messageRepository.GetCachedLastSessionId();
-
+					
 					//todo: use NLog or Serilog for logging
 					Console.WriteLine($"[WebSocketClientService]: Service has begun new session: {_lastSessionId + 1}");
 
@@ -107,7 +107,8 @@ namespace Web.HostedServices
 #if DEBUG
 			Console.WriteLine($"[WebSocketClientService]: Specified session interval expired after: {_stopwatch.ElapsedMilliseconds} ms");
 #endif
-			await StopMessaging();
+			await StopMessaging();		
+
 			await workingTask;
 		}
 
@@ -133,21 +134,26 @@ namespace Web.HostedServices
 				return new OperResult(OperResult.Messages.AlreadyStopped);
 
 			_manualReset.Reset();
-			_stoppingMessagingCts.Cancel();		
+			_stoppingMessagingCts.Cancel();
 			_stoppingMessagingCts.Dispose();
 			_stoppingMessagingCts = null;
+
+			// initiate a graceful close operation
+			await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+
+			//todo: instead of set new State here
+			_isWaitingForGracefulClose = true;
+
+			
 			return OperResult.Succeeded;
 		}		
 
 		private async Task DoMessaging(CancellationToken stopMessagingToken, int sessionId)
 		{			
 			int withinSessionMessageId = 1;
-
-			// no need to depend on possibly complex state of the Network object (_clientWebSocket.State)
-			// cause of we only send data
-			// so, much better to depend on plain and simple CancellationToken (i.e. no network-bound local state)
-			while (!stopMessagingToken.IsCancellationRequested)
-			{				
+			
+			while (_clientWebSocket.State == WebSocketState.Open && !stopMessagingToken.IsCancellationRequested)
+			{	
 				var message = new SampleMessage
 				{
 					NodeOne_Timestamp = DateTime.Now,
@@ -156,7 +162,8 @@ namespace Web.HostedServices
 				};
 
 				await SendMessage(message, stopMessagingToken);
-
+				_statistics.MessagesHandled++;
+				
 				if (stopMessagingToken.IsCancellationRequested)
 					break;
 			}			
@@ -166,7 +173,6 @@ namespace Web.HostedServices
 			// save statistics here
 			_stopwatch.Stop();
 			_statistics.ActualDuration = _stopwatch.ElapsedMilliseconds;
-			_statistics.MessagesHandled = withinSessionMessageId;
 
 			//todo: write log asyncronously?
 			//todo: use NLog or Serilog for logging
@@ -174,13 +180,10 @@ namespace Web.HostedServices
 			Console.WriteLine("Statistics:");
 			Console.WriteLine($"{new string(' ', 3)}Data sending duration:");
 			Console.WriteLine($"{new string(' ', 3)}1.Formal: {_statistics.FormalDuration}s");
-			Console.WriteLine($"{new string(' ', 3)}2.Actual: {_statistics.ActualDuration} ms ({(double)_statistics.ActualDuration/1000:N1}s)");
 
-			// initiate a graceful close operation
-			await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+			var actDur = (double)_statistics.ActualDuration / 1000;
 
-			//todo: instead of set new State here
-			_isWaitingForGracefulClose = true;
+			Console.WriteLine($"{new string(' ', 3)}2.Actual: {_statistics.ActualDuration} ms ({actDur:N1}s, {actDur/60:N1}m)");			
 
 			//continue to measure graceful close interval
 			_stopwatch.Restart();
@@ -224,6 +227,10 @@ namespace Web.HostedServices
 						var totalTime = (double)_statistics.TotalSessionTime / 1000;
 						Console.WriteLine($"{new string(' ', 3)}3.Graceful close event after: {_statistics.GracefulCloseInterval} ms ({closeInt:N1}s, {closeInt/60:N1}m)");
 						Console.WriteLine($"{new string(' ', 3)}4.Total session duration: {_statistics.TotalSessionTime} ms ({totalTime:N1}s, {totalTime / 60:N1}m)");
+						Console.WriteLine($"{new string(' ', 3)}Messages handling:");
+						Console.WriteLine($"{new string(' ', 3)}5.Total messages sent: {_statistics.MessagesHandled}");
+
+
 						break;
 					}
 				}

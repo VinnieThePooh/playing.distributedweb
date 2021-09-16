@@ -7,7 +7,7 @@
 			ResultMessage = message;
 		}
 
-		public bool IsSucceeded => ResultMessage is not null;
+		public bool IsSucceeded => ResultMessage is null;
 
 		public string ResultMessage { get; }
 
