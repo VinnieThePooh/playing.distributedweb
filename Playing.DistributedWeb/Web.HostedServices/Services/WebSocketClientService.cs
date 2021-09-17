@@ -196,7 +196,7 @@ namespace Web.HostedServices
 				};
 
 				await SendMessage(message);
-				_statistics.MessagesHandled++;				
+				_statistics.MessagesHandled++;
 			}	
 
 			//WARNING: actual session interval is much longer than specified (38.5 seconds vs 5s from config)
@@ -227,7 +227,7 @@ namespace Web.HostedServices
 		{
 			if (_clientWebSocket == null)
 			{
-				_clientWebSocket = new ClientWebSocket();
+				_clientWebSocket = new ClientWebSocket();				
 				await _clientWebSocket.ConnectAsync(new Uri(ConnectionOptions.SocketUrl), stopMessagingToken);
 			}
 		}
@@ -242,7 +242,7 @@ namespace Web.HostedServices
 
 			//only once access to the property
 			var state = ServiceState;
-			while (state == ServiceState.SendingData || 
+			while (state == ServiceState.SendingData ||
 				   state == ServiceState.WaitingForGracefulClose)
 			{
 				Debug.WriteLine($"{counter++}. Listening for WebSocketMessageType.Close command");
@@ -260,6 +260,8 @@ namespace Web.HostedServices
 						{
 							_serviceState = ServiceState.Stopped;
 							_stoppingMessagingCts = null;
+							_clientWebSocket.Dispose();
+							_clientWebSocket = null;
 						}
 						
 						_stopwatch.Stop();
