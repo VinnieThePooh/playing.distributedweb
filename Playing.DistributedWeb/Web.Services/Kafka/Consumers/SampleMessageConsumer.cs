@@ -22,9 +22,9 @@ namespace Web.Services.Kafka.Consumers
 			{
 				BootstrapServers = KafkaOptions.BootstrapServerUrl,
 				ClientId = KafkaOptions.ClientId,		
-				GroupId = "importance: high",			
+				GroupId = "importance: high",
 			};
-			_consumer = new ConsumerBuilder<Ignore, SampleMessage>(config)				
+			_consumer = new ConsumerBuilder<Ignore, SampleMessage>(config)
 			.SetValueDeserializer(new CustomDeserializer<SampleMessage>())
 			.Build();
 
