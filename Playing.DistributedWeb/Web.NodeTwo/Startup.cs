@@ -45,7 +45,11 @@ namespace Web.NodeTwo
 		{
 			services.AddOpenTracing();
 			services.AddSingleton<ITracer>(serviceProvider => {				
+				
 				var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+				Jaeger.Configuration.SenderConfiguration.DefaultSenderResolver = new SenderResolver(loggerFactory)
+				.RegisterSenderFactory<ThriftSenderFactory>();
+
 				var config = Jaeger.Configuration.FromIConfiguration(loggerFactory, Configuration.GetSection("JaegerSettings"));
 				var tracer = config.GetTracer();
 				GlobalTracer.Register(tracer);

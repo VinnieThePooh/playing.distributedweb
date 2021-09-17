@@ -66,7 +66,7 @@ namespace Web.NodeOne.Controllers
 			foreach (var message in messages)
 				message.End_Timestamp = now;
 
-			var started = span.Start();			
+			var started = span.Start();	
 			await _messagesRepository.InsertBatch(messages);
 			Debug.WriteLine($"Received data batch ({messages.Count()} of SampleMessage entity) and successfully persisted it to MariaDb");
 			started.Finish(DateTimeOffset.Now);

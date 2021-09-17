@@ -1,6 +1,7 @@
 using Jaeger;
 using Jaeger.Reporters;
 using Jaeger.Samplers;
+using Jaeger.Senders.Thrift;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -39,8 +40,12 @@ namespace Web.NodeOne
 
 			services.AddOpenTracing();
 			services.AddSingleton<ITracer>(serviceProvider => {
+
 				var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
-				var config = Jaeger.Configuration.FromIConfiguration(loggerFactory, Configuration.GetSection("JaegerSettings"));
+				Jaeger.Configuration.SenderConfiguration.DefaultSenderResolver = new Jaeger.Senders.SenderResolver(loggerFactory)
+				.RegisterSenderFactory<ThriftSenderFactory>();
+
+				var config = Jaeger.Configuration.FromIConfiguration(loggerFactory, Configuration.GetSection("JaegerSettings"));				
 				var tracer = config.GetTracer();
 				GlobalTracer.Register(tracer);
 				return tracer;
