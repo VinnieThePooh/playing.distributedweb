@@ -14,7 +14,7 @@
 		{ }
 
 		//in seconds
-		public int? FormalDuration { get; set; }
+		public int FormalDuration { get; set; }
 
 		//in ms
 		public long ActualDuration { get; set; }

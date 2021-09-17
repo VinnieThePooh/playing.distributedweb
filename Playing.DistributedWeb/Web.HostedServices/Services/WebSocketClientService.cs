@@ -19,15 +19,14 @@ using System.Runtime.CompilerServices;
 namespace Web.HostedServices
 {
 	public class WebSocketClientService : BackgroundService, IWebSocketClientService
-	{
-		private static Random _random = new Random();
+	{		
 		private ClientWebSocket _clientWebSocket;
 		private CancellationTokenSource _stoppingMessagingCts;
 		private ManualResetEvent _manualReset = new ManualResetEvent(false);
 		private readonly ISampleMessageRepository _messageRepository;
 		private int _lastSessionId;
 		private SendingStatistics _statistics;
-		private Stopwatch _stopwatch;	
+		private Stopwatch _stopwatch = new Stopwatch();
 		
 		private object lockObject = new object();
 		ServiceState _serviceState = default;
@@ -58,11 +57,6 @@ namespace Web.HostedServices
 		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 		{
 			await Task.Yield();
-
-			// only once: MessagingOptions.Duration is not changed in runtime
-			_statistics = new SendingStatistics(MessagingOptions.Duration);
-			_stopwatch = new Stopwatch();
-
 			while (!stoppingToken.IsCancellationRequested)
 			{
 				CancellationToken opToken;
@@ -74,11 +68,10 @@ namespace Web.HostedServices
 					//todo: use NLog or Serilog for logging
 					Console.WriteLine($"[WebSocketClientService]: Service has begun new session: {_lastSessionId + 1}");
 
-					_stopwatch.Start() ;
+					_stopwatch.Start();
 					opToken = _stoppingMessagingCts.Token;
 					await EnsureSocketInitialized(opToken);
 					await StartMessagingSession(opToken, _lastSessionId + 1);
-
 
 					if (MessagingOptions.PauseBettweenMessages > 0)
 						await Task.Delay(MessagingOptions.PauseBettweenMessages);
@@ -114,19 +107,7 @@ namespace Web.HostedServices
 #endif
 			await StopMessaging();
 			await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);
-			try
-			{
-				// and only now we begin to listen carefully for a graceful close
-				// do not begin new session until graceful close previous one
-				await ListenForGracefulClose();
-			}
-			catch (WebSocketException exc)
-			{
-				//todo: Serilog here
-#if DEBUG
-				Console.WriteLine(exc.ToString());
-#endif				
-			}			
+			await ListenForGracefulClose();				
 		}
 
 
@@ -142,6 +123,8 @@ namespace Web.HostedServices
 					return new OperResult(OperResult.Messages.SendingData);
 				}
 
+				_stopwatch.Reset();
+				_statistics = new SendingStatistics(MessagingOptions.Duration);
 				_stoppingMessagingCts = new CancellationTokenSource();
 				_manualReset.Set();
 				_serviceState = ServiceState.SendingData;
