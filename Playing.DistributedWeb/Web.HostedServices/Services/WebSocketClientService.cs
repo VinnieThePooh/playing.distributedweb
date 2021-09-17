@@ -180,6 +180,9 @@ namespace Web.HostedServices
 
 				await SendMessage(message);
 				_statistics.MessagesHandled++;
+
+				if (stopMessagingToken.IsCancellationRequested)
+					break;
 			}	
 
 			//WARNING: actual session interval is much longer than specified (38.5 seconds vs 5s from config)
