@@ -79,26 +79,21 @@ namespace Web.HostedServices
 					await EnsureSocketInitialized(opToken);
 					await StartMessagingSession(opToken, _lastSessionId + 1);
 
+
 					if (MessagingOptions.PauseBettweenMessages > 0)
 						await Task.Delay(MessagingOptions.PauseBettweenMessages);
 				}
 				catch (OperationCanceledException ce)
 				{
-					await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);
-					// and only now we begin to listen carefully for a graceful close
-					// do not begin new session until graceful close previous one
-					await ListenForGracefulClose(_clientWebSocket);		
+					//do nothing
 				}
 				catch (WebSocketException wse)
 				{
-					//todo: handle this					
-					//retry
-					//do log here						
+					//todo: Serilog here											
 				}
 				catch (Exception e)
 				{
-					//todo: 
-					//do log here
+					//todo: Serilog here					
 				}
 			}
 		}
@@ -118,8 +113,17 @@ namespace Web.HostedServices
 			Console.WriteLine($"[WebSocketClientService]: Specified session interval expired after: {_stopwatch.ElapsedMilliseconds} ms");
 #endif
 			await StopMessaging();
-
-			await workingTask;
+			await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);			
+			try
+			{
+				// and only now we begin to listen carefully for a graceful close
+				// do not begin new session until graceful close previous one
+				await ListenForGracefulClose();
+			}
+			catch (WebSocketException exc)
+			{				
+				//todo: Serilog here
+			}			
 		}
 
 
@@ -135,19 +139,22 @@ namespace Web.HostedServices
 					return new OperResult(OperResult.Messages.SendingData);
 				}
 
+				_stoppingMessagingCts = new CancellationTokenSource();
+				_manualReset.Set();
 				_serviceState = ServiceState.SendingData;
-			}
-
-			_stoppingMessagingCts = new CancellationTokenSource();
-			_manualReset.Set();
-			return OperResult.Succeeded;
+				return OperResult.Succeeded;
+			}						
 		}
 
 		public async ValueTask<OperResult> StopMessaging()
 		{
 			var res = StopMessagingInternal();
 			if (res.IsSucceeded)
+			{
 				await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+				lock(lockObject)
+					_serviceState = ServiceState.WaitingForGracefulClose;
+			}
 			return res;
 		}
 
@@ -164,9 +171,7 @@ namespace Web.HostedServices
 
 				_manualReset.Reset();
 				_stoppingMessagingCts.Cancel();
-				_stoppingMessagingCts.Dispose();
-				_stoppingMessagingCts = null;
-				_serviceState = ServiceState.WaitingForGracefulClose;
+				_stoppingMessagingCts.Dispose();				
 			}
 
 			return OperResult.Succeeded;
@@ -224,13 +229,18 @@ namespace Web.HostedServices
 			}
 		}
 
-		private async Task ListenForGracefulClose(ClientWebSocket webSocket)
+		private async Task ListenForGracefulClose()
 		{
 			var buffer = new byte[4 * 1024];
 			var arraySegment = new ArraySegment<byte>(buffer);
+			var webSocket = _clientWebSocket;
 			
 			var counter = 1;
-			while (webSocket.State == WebSocketState.CloseSent)
+
+			//only once access to the property
+			var state = ServiceState;
+			while (state == ServiceState.SendingData || 
+				   state == ServiceState.WaitingForGracefulClose)
 			{
 				Debug.WriteLine($"{counter++}. Listening for WebSocketMessageType.Close command");
 				WebSocketReceiveResult result;
@@ -246,6 +256,7 @@ namespace Web.HostedServices
 						lock(lockObject)
 						{
 							_serviceState = ServiceState.Stopped;
+							_stoppingMessagingCts = null;
 						}
 						
 						_stopwatch.Stop();
@@ -258,6 +269,7 @@ namespace Web.HostedServices
 						Console.WriteLine($"{new string(' ', 3)}5.Total messages sent: {_statistics.MessagesHandled}");
 						break;
 					}
+					state = ServiceState;
 				}
 				catch (Exception)
 				{
@@ -267,8 +279,7 @@ namespace Web.HostedServices
 					}
 					//todo: Serilog
 					//do log here
-				}			
-				
+				}				
 			}			
 		}
 
