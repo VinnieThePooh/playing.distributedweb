@@ -113,7 +113,7 @@ namespace Web.HostedServices
 			Console.WriteLine($"[WebSocketClientService]: Specified session interval expired after: {_stopwatch.ElapsedMilliseconds} ms");
 #endif
 			await StopMessaging();
-			await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);			
+			await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);
 			try
 			{
 				// and only now we begin to listen carefully for a graceful close
@@ -121,8 +121,11 @@ namespace Web.HostedServices
 				await ListenForGracefulClose();
 			}
 			catch (WebSocketException exc)
-			{				
+			{
 				//todo: Serilog here
+#if DEBUG
+				Console.WriteLine(exc.ToString());
+#endif				
 			}			
 		}
 

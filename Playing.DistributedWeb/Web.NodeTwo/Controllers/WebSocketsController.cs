@@ -38,15 +38,19 @@ namespace Web.NodeTwo.Controllers
 		}
 
 		[HttpGet("/ws")]
-		public async Task<IActionResult> Get()
+		public async Task Get()
 		{
 			if (!HttpContext.WebSockets.IsWebSocketRequest)
-				return BadRequest();
+			{
+				HttpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+				return;
+			}
+
+			HttpContext.Response.StatusCode = StatusCodes.Status101SwitchingProtocols;
+			HttpContext.Response.Headers.Add("Upgrade", "websocket");
 
 			var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
 			await HandleWebSocketDataDemo(HttpContext, webSocket, _producer);
-
-			return StatusCode(StatusCodes.Status101SwitchingProtocols);
 		}
 
 		private async Task HandleWebSocketDataDemo(HttpContext context, WebSocket webSocket, ISampleMessageProducer<Null> producer)
@@ -108,7 +112,7 @@ namespace Web.NodeTwo.Controllers
 			}
 
 			//session ends here
-			//todo: use NLog or Serilog for logging
+			//todo: Serilog here
 			Console.WriteLine($"Server WebSocket ended session: {sessionId}");
 			Console.WriteLine("Statistics:");
 			Console.WriteLine($"{new string(' ', 3)}1.Duration: {statistics.ActualDuration}ms");
