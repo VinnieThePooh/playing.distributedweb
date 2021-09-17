@@ -1,9 +1,16 @@
+using Jaeger;
+using Jaeger.Reporters;
+using Jaeger.Samplers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using OpenTracing;
+using OpenTracing.Util;
+using System.Reflection;
 using Web.DataAccess.Interfaces;
 using Web.DataAccess.Repositories;
 using Web.HostedServices;
@@ -30,11 +37,20 @@ namespace Web.NodeOne
 
 			var conString = Configuration.GetConnectionString("MariaDb");
 
-			//todo: probably just non-IHostedService singleton works as well (or not?)
-			services.AddSingleton<IWebSocketClientService, WebSocketClientService>();			
-			services.AddSingleton<IHostedService>(p => p.GetService<IWebSocketClientService>());			
-			services.AddSingleton<ISampleMessageRepository, MariaDbSampleMessageRepository>(sp => new MariaDbSampleMessageRepository(conString));			
+			services.AddOpenTracing();
+			services.AddSingleton<ITracer>(serviceProvider => {
+				var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+				var config = Jaeger.Configuration.FromIConfiguration(loggerFactory, Configuration.GetSection("JaegerSettings"));
+				var tracer = config.GetTracer();
+				GlobalTracer.Register(tracer);
+				return tracer;
+			});
 
+			//todo: probably just non-IHostedService singleton works as well (or not?)
+			services.AddSingleton<IWebSocketClientService, WebSocketClientService>();		
+			services.AddSingleton<IHostedService>(p => p.GetService<IWebSocketClientService>());			
+			services.AddSingleton<ISampleMessageRepository, MariaDbSampleMessageRepository>(sp => new MariaDbSampleMessageRepository(conString));
+						
 			services.AddControllers();
 			services.AddSwaggerGen(c =>
 			{

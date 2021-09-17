@@ -21,6 +21,13 @@ using Web.Services.Kafka.Producers;
 using Confluent.Kafka;
 using Web.MessagingModels.Extensions;
 using System.Runtime.CompilerServices;
+using OpenTracing;
+using Microsoft.Extensions.Logging;
+using Jaeger.Senders;
+using Jaeger.Senders.Thrift;
+using Jaeger.Samplers;
+using Jaeger;
+using OpenTracing.Util;
 
 namespace Web.NodeTwo
 {
@@ -36,6 +43,15 @@ namespace Web.NodeTwo
 		// This method gets called by the runtime. Use this method to add services to the container.
 		public void ConfigureServices(IServiceCollection services)
 		{
+			services.AddOpenTracing();
+			services.AddSingleton<ITracer>(serviceProvider => {				
+				var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+				var config = Jaeger.Configuration.FromIConfiguration(loggerFactory, Configuration.GetSection("JaegerSettings"));
+				var tracer = config.GetTracer();
+				GlobalTracer.Register(tracer);
+				return tracer;
+			});
+			
 			services.Configure<KafkaOptions>(Configuration.GetSection("KafkaOptions"));
 			services.Configure<WebSocketServerOptions>(Configuration.GetSection("WebSocketServer"));
 			services.AddControllers();
@@ -47,8 +63,7 @@ namespace Web.NodeTwo
 		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 		{
 			var webSocketOptions = Configuration.GetSection("WebSocketServer").Get<WebSocketServerOptions>();
-			var kafkaProducer = app.ApplicationServices.GetService<ISampleMessageProducer<Null>>();
-
+			var kafkaProducer = app.ApplicationServices.GetService<ISampleMessageProducer<Null>>();			
 
 			//todo: add other options from config
 			var socketOptions = new WebSocketOptions()
@@ -76,7 +91,7 @@ namespace Web.NodeTwo
 			
 			//todo: move to a controller with a static route
 			app.Use(async (context, next) => 
-			{
+			{				
 				if (context.Request.Path != socketPath)
 				{
 					await next();
@@ -90,12 +105,15 @@ namespace Web.NodeTwo
 				context.Response.Headers.Add("Upgrade", "websocket");
 
 				var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-				await HandleWebSocketDataDemo(context, webSocket, kafkaProducer);	
+				await HandleWebSocketDataDemo(context, webSocket, kafkaProducer, context.RequestServices);	
 			});
 		}
 		
-		private async Task HandleWebSocketDataDemo(HttpContext context, WebSocket webSocket, ISampleMessageProducer<Null> producer)
+		private async Task HandleWebSocketDataDemo(HttpContext context, WebSocket webSocket, 
+			ISampleMessageProducer<Null> producer, 
+			IServiceProvider serviceProvider)
 		{
+			var tracer = serviceProvider.GetRequiredService<ITracer>();
 			var buffer = new byte[1024 * 4];
 			ArraySegment<byte> bytesSegment = new ArraySegment<byte>(buffer);
 			WebSocketReceiveResult result = await webSocket.ReceiveAsync(bytesSegment, CancellationToken.None);
@@ -107,7 +125,8 @@ namespace Web.NodeTwo
 			int? sessionId = null;
 
 			Stopwatch sw = Stopwatch.StartNew();
-
+			var span = tracer.BuildSpan("web-socket-session-begin").WithStartTimestamp(DateTime.Now);
+			var started = span.Start();
 			while (webSocket.State == WebSocketState.Open || webSocket.State == WebSocketState.CloseReceived)
 			{
 				bytes.AddRange(bytesSegment.Slice(0, result.Count));
@@ -145,6 +164,7 @@ namespace Web.NodeTwo
 				{
 					sw.Stop();
 					statistics.ActualDuration = sw.ElapsedMilliseconds;
+					started.Finish(DateTime.Now);
 					await webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
 					break;
 				}

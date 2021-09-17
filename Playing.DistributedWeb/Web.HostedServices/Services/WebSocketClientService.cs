@@ -28,7 +28,7 @@ namespace Web.HostedServices
 		private SendingStatistics _statistics;
 		private Stopwatch _stopwatch;
 		//todo: instead of this add State as enum with of states
-		private bool _isWaitingForGracefulClose = false;		
+		private bool _isWaitingForGracefulClose = false;
 
 		public WebSocketClientService(IOptions<MessagingOptions> options, IOptions<WebSocketConnectionOptions> connectionOptions, ISampleMessageRepository messageRepository)
 		{
@@ -66,7 +66,7 @@ namespace Web.HostedServices
 
 					_stopwatch.Start() ;
 					opToken = _stoppingMessagingCts.Token;
-					await EnsureSocketInitialized(opToken);				
+					await EnsureSocketInitialized(opToken);
 					await StartMessagingSession(opToken, _lastSessionId + 1);
 
 					if (MessagingOptions.PauseBettweenMessages > 0)
@@ -77,7 +77,7 @@ namespace Web.HostedServices
 					await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);
 					// and only now we begin to listen carefully for a graceful close
 					// do not begin new session until graceful close previous one
-					await ListenForGracefulClose(_clientWebSocket);			
+					await ListenForGracefulClose(_clientWebSocket);		
 				}
 				catch (WebSocketException wse)
 				{
@@ -176,7 +176,7 @@ namespace Web.HostedServices
 
 			//todo: write log asyncronously?
 			//todo: use NLog or Serilog for logging
-			Console.WriteLine($"[WebSocketClientService]: Service ended session: {sessionId}");
+			Console.WriteLine($"[WebSocketClientService]: Service ended session: {sessionId}");	
 			Console.WriteLine("Statistics:");
 			Console.WriteLine($"{new string(' ', 3)}Data sending duration:");
 			Console.WriteLine($"{new string(' ', 3)}1.Formal: {_statistics.FormalDuration}s");
@@ -229,7 +229,6 @@ namespace Web.HostedServices
 						Console.WriteLine($"{new string(' ', 3)}4.Total session duration: {_statistics.TotalSessionTime} ms ({totalTime:N1}s, {totalTime / 60:N1}m)");
 						Console.WriteLine($"{new string(' ', 3)}Messages handling:");
 						Console.WriteLine($"{new string(' ', 3)}5.Total messages sent: {_statistics.MessagesHandled}");
-
 
 						break;
 					}

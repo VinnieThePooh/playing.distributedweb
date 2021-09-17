@@ -1,5 +1,5 @@
 1. Main cycle is not reactive while changing state of a service
    i.e. operation is canceled exactly according to config (5s), but main loop reacts 38-40 sec after. !!!
-2. While service is still busy, endpoints returns 200 OK.
+2. While service is still busy, endpoints return 200 OK.
    Time for thread safety?
 		
