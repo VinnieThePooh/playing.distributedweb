@@ -25,6 +25,7 @@ namespace Web.HostedServices
 		{
 			SampleMessageConsumer = consumer ?? throw new ArgumentNullException(nameof(consumer));
 			RestSender = restSender ?? throw new ArgumentNullException(nameof(restSender));
+			_tracer = tracer;
 		}
 
 		public ISampleMessageConsumer<Ignore> SampleMessageConsumer { get; }
