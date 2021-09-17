@@ -90,13 +90,23 @@ namespace Web.NodeTwo.Controllers
 					message.NodeTwo_Timestamp = DateTime.Now;
 					if (sessionId is null)
 						sessionId = message.SessionId;
+					
 					statistics.MessagesReceived++;
-
-					var deliveryResult = await producer.ProduceAsync(message, CancellationToken.None);
 					bytes.Clear();
+
+					if (KafkaOptions.ProduceToKafka)
+					{
+						var deliveryResult = await producer.ProduceAsync(message, CancellationToken.None);
 #if DEBUG
-					Console.WriteLine($" Web.NodeTwo: {counter++}. WebSocket server received and kafka producer retransmitted: {message.ToJson()}");
+						Console.WriteLine($" Web.NodeTwo: {counter++}. WebSocket server received and kafka producer retransmitted: {message.ToJson()}");
 #endif
+					}
+					else
+					{
+#if DEBUG
+						Console.WriteLine($" Web.NodeTwo: {counter++}. WebSocket server received: {message.ToJson()}");
+#endif
+					}
 				}
 
 				result = await webSocket.ReceiveAsync(bytesSegment, CancellationToken.None);
