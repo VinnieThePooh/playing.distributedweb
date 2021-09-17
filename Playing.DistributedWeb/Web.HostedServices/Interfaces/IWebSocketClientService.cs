@@ -14,10 +14,6 @@ namespace Web.HostedServices.Interfaces
 
 		WebSocketConnectionOptions ConnectionOptions { get; }
 
-		//todo: instead of this add State as enum with three states:
-		//1.Stopped
-		//2.SendingData
-		//3.WaitingForGracefulClose
-		bool IsMessaging { get; }
+		ServiceState ServiceState { get; }
 	}
 }

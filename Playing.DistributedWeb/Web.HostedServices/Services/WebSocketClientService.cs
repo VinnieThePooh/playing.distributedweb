@@ -14,6 +14,7 @@ using Web.MessagingModels.Models;
 using System.Diagnostics;
 using Web.MessagingModels.Extensions.Tasks;
 using Web.HostedServices.Models;
+using System.Runtime.CompilerServices;
 
 namespace Web.HostedServices
 {
@@ -26,9 +27,10 @@ namespace Web.HostedServices
 		private readonly ISampleMessageRepository _messageRepository;
 		private int _lastSessionId;
 		private SendingStatistics _statistics;
-		private Stopwatch _stopwatch;
-		//todo: instead of this add State as enum with of states
-		private bool _isWaitingForGracefulClose = false;
+		private Stopwatch _stopwatch;	
+		
+		private object lockObject = new object();
+		ServiceState _serviceState = default;
 
 		public WebSocketClientService(IOptions<MessagingOptions> options, IOptions<WebSocketConnectionOptions> connectionOptions, ISampleMessageRepository messageRepository)
 		{
@@ -44,6 +46,14 @@ namespace Web.HostedServices
 		//todo: instead of this add State as enum with of states
 		public bool IsMessaging => _stoppingMessagingCts != null;
 
+		public ServiceState ServiceState
+		{ 
+			get 
+			{ 
+			  lock(lockObject)
+				return _serviceState;
+			}
+		}
 
 		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 		{
@@ -102,12 +112,12 @@ namespace Web.HostedServices
 			var delay = Task.Delay(ms);
 
 			//not sure ConfigureAwait(false) works with TaskScheduler.Default (highly likely NO)
-			await delay.WithStopwatchRacing(TimeSpan.FromMilliseconds(ms)).ConfigureAwait(false);
+			await delay.ConfigureAwait(false);
 
 #if DEBUG
 			Console.WriteLine($"[WebSocketClientService]: Specified session interval expired after: {_stopwatch.ElapsedMilliseconds} ms");
 #endif
-			await StopMessaging();		
+			await StopMessaging();
 
 			await workingTask;
 		}
@@ -115,13 +125,19 @@ namespace Web.HostedServices
 
 		public async ValueTask<OperResult> StartMessaging()
 		{
-			//todo: instead of this check state (will be added later) object:
-			if (_stoppingMessagingCts != null)
-				return new OperResult(OperResult.Messages.SendingData);
+			lock(lockObject)
+			{
+				if (_stoppingMessagingCts != null)
+				{
+					if (_stoppingMessagingCts.IsCancellationRequested)
+						return new OperResult(OperResult.Messages.WaitingForGracefulClose);
 
-			if (_isWaitingForGracefulClose)
-				return new OperResult(OperResult.Messages.WaitingForGracefulClose);
-			
+					return new OperResult(OperResult.Messages.SendingData);
+				}
+
+				_serviceState = ServiceState.SendingData;
+			}
+
 			_stoppingMessagingCts = new CancellationTokenSource();
 			_manualReset.Set();
 			return OperResult.Succeeded;
@@ -129,31 +145,41 @@ namespace Web.HostedServices
 
 		public async ValueTask<OperResult> StopMessaging()
 		{
-			//todo: instead of this check state (will be added later) object:
-			if (_stoppingMessagingCts == null)
-				return new OperResult(OperResult.Messages.AlreadyStopped);
+			var res = StopMessagingInternal();
+			if (res.IsSucceeded)
+				await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+			return res;
+		}
 
-			_manualReset.Reset();
-			_stoppingMessagingCts.Cancel();
-			_stoppingMessagingCts.Dispose();
-			_stoppingMessagingCts = null;
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		private OperResult StopMessagingInternal()
+		{
+			lock (lockObject)
+			{
+				if (_stoppingMessagingCts == null)
+					return new OperResult(OperResult.Messages.AlreadyStopped);
 
-			// initiate a graceful close operation
-			await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+				if (_stoppingMessagingCts.IsCancellationRequested)
+					return new OperResult(OperResult.Messages.WaitingForGracefulClose);
 
-			//todo: instead of set new State here
-			_isWaitingForGracefulClose = true;
+				_manualReset.Reset();
+				_stoppingMessagingCts.Cancel();
+				_stoppingMessagingCts.Dispose();
+				_stoppingMessagingCts = null;
+				_serviceState = ServiceState.WaitingForGracefulClose;
+			}
 
-			
 			return OperResult.Succeeded;
-		}		
+		}
+
 
 		private async Task DoMessaging(CancellationToken stopMessagingToken, int sessionId)
 		{			
 			int withinSessionMessageId = 1;
-			
-			while (_clientWebSocket.State == WebSocketState.Open && !stopMessagingToken.IsCancellationRequested)
-			{	
+
+			//only ServiceState.SendingData phase can be stopped
+			while (ServiceState == ServiceState.SendingData)
+			{
 				var message = new SampleMessage
 				{
 					NodeOne_Timestamp = DateTime.Now,
@@ -161,12 +187,9 @@ namespace Web.HostedServices
 					WithinSessionMessageId = withinSessionMessageId++,
 				};
 
-				await SendMessage(message, stopMessagingToken);
-				_statistics.MessagesHandled++;
-				
-				if (stopMessagingToken.IsCancellationRequested)
-					break;
-			}			
+				await SendMessage(message);
+				_statistics.MessagesHandled++;				
+			}	
 
 			//WARNING: actual session interval is much longer than specified (38.5 seconds vs 5s from config)
 			// session completes here (this side only)
@@ -220,7 +243,11 @@ namespace Web.HostedServices
 					{
 						//graceful close completes here
 						//todo: later just set new State here
-						_isWaitingForGracefulClose = false;
+						lock(lockObject)
+						{
+							_serviceState = ServiceState.Stopped;
+						}
+						
 						_stopwatch.Stop();
 						_statistics.GracefulCloseInterval = _stopwatch.ElapsedMilliseconds;
 						var closeInt = (double)_statistics.GracefulCloseInterval / 1000;
@@ -229,23 +256,24 @@ namespace Web.HostedServices
 						Console.WriteLine($"{new string(' ', 3)}4.Total session duration: {_statistics.TotalSessionTime} ms ({totalTime:N1}s, {totalTime / 60:N1}m)");
 						Console.WriteLine($"{new string(' ', 3)}Messages handling:");
 						Console.WriteLine($"{new string(' ', 3)}5.Total messages sent: {_statistics.MessagesHandled}");
-
 						break;
 					}
 				}
 				catch (Exception)
 				{
-					throw;
+					lock (lockObject)
+					{
+						_serviceState = ServiceState.Stopped;
+					}
+					//todo: Serilog
+					//do log here
 				}			
 				
 			}			
 		}
 
-		private async Task SendMessage(SampleMessage message, CancellationToken stopMessagingToken)
+		private async Task SendMessage(SampleMessage message)
 		{
-			if (stopMessagingToken.IsCancellationRequested)
-				return;
-
 			ArraySegment<byte> bytes;
 			using (var stream = new MemoryStream())
 			{
@@ -254,6 +282,6 @@ namespace Web.HostedServices
 				bytes = new ArraySegment<byte>(stream.ToArray());
 			}
 			await _clientWebSocket.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None);
-		}		
+		}
 	}
 }
