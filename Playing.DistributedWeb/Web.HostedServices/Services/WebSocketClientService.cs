@@ -65,7 +65,7 @@ namespace Web.HostedServices
 					_manualReset.WaitOne();
 					_lastSessionId = await _messageRepository.GetCachedLastSessionId();
 					
-					//todo: use NLog or Serilog for logging
+					//todo: Serilog here
 					Console.WriteLine($"[WebSocketClientService]: Service has begun new session: {_lastSessionId + 1}");
 
 					_stopwatch.Start();
@@ -78,7 +78,7 @@ namespace Web.HostedServices
 				}
 				catch (OperationCanceledException ce)
 				{
-					//do nothing
+					//todo: Serilog here
 				}
 				catch (WebSocketException wse)
 				{
@@ -95,19 +95,16 @@ namespace Web.HostedServices
 		{			
 			var workingTask = Task.Run(() => DoMessaging(stopMessagingToken, newSessionId), stopMessagingToken);
 
-			var ms = MessagingOptions.Duration * 1000;
-
-			var delay = Task.Delay(ms);
-
 			//not sure ConfigureAwait(false) works with TaskScheduler.Default (highly likely NO)
-			await delay.ConfigureAwait(false);
+			await Task.Delay(MessagingOptions.Duration * 1000).ConfigureAwait(false);
 
 #if DEBUG
 			Console.WriteLine($"[WebSocketClientService]: Specified session interval expired after: {_stopwatch.ElapsedMilliseconds} ms");
 #endif
+
 			await StopMessaging();
 			await _messageRepository.SetCachedLastSessionId(_lastSessionId + 1);
-			await ListenForGracefulClose();				
+			await ListenForGracefulClose();
 		}
 
 
@@ -183,17 +180,13 @@ namespace Web.HostedServices
 
 				if (stopMessagingToken.IsCancellationRequested)
 					break;
-			}	
-
-			//WARNING: actual session interval is much longer than specified (38.5 seconds vs 5s from config)
-			// session completes here (this side only)
-			// save statistics here
+			}
+			
 			_stopwatch.Stop();
 			_statistics.ActualDuration = _stopwatch.ElapsedMilliseconds;
-
-			//todo: write log asyncronously?
-			//todo: use NLog or Serilog for logging
-			Console.WriteLine($"[WebSocketClientService]: Service ended session: {sessionId}");	
+			
+			//todo: Serilog here
+			Console.WriteLine($"[WebSocketClientService]: Service ended session: {sessionId}");
 			Console.WriteLine("Statistics:");
 			Console.WriteLine($"{new string(' ', 3)}Data sending duration:");
 			Console.WriteLine($"{new string(' ', 3)}1.Formal: {_statistics.FormalDuration}s");
@@ -268,8 +261,7 @@ namespace Web.HostedServices
 					{
 						_serviceState = ServiceState.Stopped;
 					}
-					//todo: Serilog
-					//do log here
+					//todo: Serilog here
 				}				
 			}			
 		}
