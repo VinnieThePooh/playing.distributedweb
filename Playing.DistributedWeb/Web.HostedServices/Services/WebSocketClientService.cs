@@ -31,18 +31,17 @@ namespace Web.HostedServices
 		private object lockObject = new object();
 		ServiceState _serviceState = default;
 
-		public WebSocketClientService(IOptions<MessagingOptions> options, IOptions<WebSocketConnectionOptions> connectionOptions, ISampleMessageRepository messageRepository)
+		public WebSocketClientService(IOptions<MessagingOptions> messageOptions, IOptions<WebSocketConnectionOptions> connectionOptions, ISampleMessageRepository messageRepository)
 		{
-			MessagingOptions = options.Value;
-			ConnectionOptions = connectionOptions.Value;
+			MessagingOptions = messageOptions?.Value ?? throw new ArgumentNullException(nameof(messageOptions));
+			ConnectionOptions = connectionOptions?.Value ?? throw new ArgumentNullException(nameof(connectionOptions));
 			_messageRepository = messageRepository ?? throw new ArgumentNullException(nameof(messageRepository));
 		}
 
 		public MessagingOptions MessagingOptions { get; }
 
 		public WebSocketConnectionOptions ConnectionOptions { get; }
-
-		//todo: instead of this add State as enum with of states
+		
 		public bool IsMessaging => _stoppingMessagingCts != null;
 
 		public ServiceState ServiceState
