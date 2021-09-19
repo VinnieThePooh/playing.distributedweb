@@ -1,31 +1,33 @@
 version: "3.9"
 services:
- dotnet:
+  dotnet:
     image: mcr.microsoft.com/dotnet/sdk:5.0
     restart: always
- jaeger:
+  jaeger:
     image: jaegertracing/all-in-one:latest
     restart: always
     ports:
       - "6831:6831/udp"
       - "16686:16686"
     networks:
-      - distributed-web-example
+      - distributed_web
   # works on linux platform only
   db-store:
     image: mariadb:latest
     restart: always
-    environment:
-    ROOT_PASSWORD: secret_password
+   # environment:
+   # ROOT_PASSWORD: secret_password
     networks:
-     - distributed-web-example
+     - distributed_web
   # works on linux platform only
   zookeeper:
     image: 'bitnami/zookeeper:latest'
     ports:
      - '2181:2181'
     environment:
-    - ALLOW_ANONYMOUS_LOGIN=yes     
+    - ALLOW_ANONYMOUS_LOGIN=yes
+    networks:
+    - distributed_web 
   kafka:
     image: 'bitnami/kafka:latest'
     ports:
@@ -38,30 +40,34 @@ services:
     - ALLOW_PLAINTEXT_LISTENER=yes
     depends_on:
     - zookeeper
+    networks:
+     - distributed_web
   web-node-one:
-    build: .\Web.NodeOne\
+    build: ./Web.NodeOne/
     ports:
      - "44352:44352"
     networks:
-     - distributed-web-example
+     - distributed_web
     depends_on:
      - dotnet
      - db-store
   web-node-two:
-    build: .\Web.NodeTwo\
+    build: ./Web.NodeTwo/
     ports:
      - "5001:5001"
     networks:
-     - distributed-web-example
+     - distributed_web
     depends_on:
      - dotnet
      - kafka     
   web-node-three:
-    build: .\Web.NodeThree\
+    build: ./Web.NodeThree/
     ports:
      - "5003:5003"
     networks:
-     - distributed-web-example
+     - distributed_web
     depends_on:
      - dotnet
      - kafka
+networks:
+ distributed_web:
