@@ -22,12 +22,14 @@ services:
   # works on linux platform only
   zookeeper:
     image: 'bitnami/zookeeper:latest'
+    restart: always
     ports:
      - '2181:2181'
     environment:
     - ALLOW_ANONYMOUS_LOGIN=yes     
   kafka:
     image: 'bitnami/kafka:latest'
+    restart: always
     ports:
     - '9092:9092'
     environment:
@@ -40,6 +42,7 @@ services:
     - zookeeper
   web-node-one:
     build: .\Web.NodeOne\
+    restart: always
     ports:
      - "44352:44352"
     networks:
@@ -49,6 +52,7 @@ services:
      - db-store
   web-node-two:
     build: .\Web.NodeTwo\
+    restart: always
     ports:
      - "5001:5001"
     networks:
@@ -58,6 +62,7 @@ services:
      - kafka     
   web-node-three:
     build: .\Web.NodeThree\
+    restart: always
     ports:
      - "5003:5003"
     networks:
