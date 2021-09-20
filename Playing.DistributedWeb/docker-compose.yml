@@ -15,10 +15,12 @@ services:
   db-store:
     image: mariadb:latest
     restart: always
-   # environment:
-   # ROOT_PASSWORD: secret_password
+    environment:
+     - MARIADB_ROOT_PASSWORD:mariarootPass1@
     networks:
      - distributed_web
+    volumes:
+     - /var/lib/mysql:/var/lib/mysql
   # works on linux platform only
   zookeeper:
     image: 'bitnami/zookeeper:latest'
@@ -26,8 +28,10 @@ services:
      - '2181:2181'
     environment:
     - ALLOW_ANONYMOUS_LOGIN=yes
+    - ZOO_LOG_LEVEL=OFF
     networks:
     - distributed_web 
+  # works on linux platform only
   kafka:
     image: 'bitnami/kafka:latest'
     ports:
