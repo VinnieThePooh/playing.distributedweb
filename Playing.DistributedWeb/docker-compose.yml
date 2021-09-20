@@ -22,7 +22,6 @@ services:
   # works on linux platform only
   zookeeper:
     image: 'bitnami/zookeeper:latest'
-    restart: always
     ports:
      - '2181:2181'
     environment:
@@ -31,7 +30,6 @@ services:
     - distributed_web 
   kafka:
     image: 'bitnami/kafka:latest'
-    restart: always
     ports:
     - '9092:9092'
     environment:
@@ -45,8 +43,9 @@ services:
     networks:
      - distributed_web
   web-node-one:
-    build: ./Web.NodeOne/    
-    restart: always
+    build: 
+     context: .
+     dockerfile: Web.NodeOne/Docker/Dockerfile    
     ports:
      - "44352:44352"
     networks:
@@ -55,8 +54,9 @@ services:
      - dotnet
      - db-store
   web-node-two:
-    build: ./Web.NodeTwo/    
-    restart: always
+    build: 
+     context: .
+     dockerfile: Web.NodeTwo/Docker/Dockerfile
     ports:
      - "5001:5001"
     networks:
@@ -65,8 +65,9 @@ services:
      - dotnet
      - kafka     
   web-node-three:
-    build: ./Web.NodeThree/    
-    restart: always
+    build: 
+     context: .
+     dockerfile: Web.NodeThree/Docker/Dockerfile
     ports:
      - "5003:5003"
     networks:
