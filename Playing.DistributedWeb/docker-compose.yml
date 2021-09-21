@@ -16,7 +16,8 @@ services:
     image: mariadb:latest
     restart: always
     environment:
-     - MARIADB_ROOT_PASSWORD:mariarootPass1@
+     #- MARIADB_ROOT_PASSWORD:mariarootPass1@
+     - MARIADB_ALLOW_EMPTY_ROOT_PASSWORD:true
     networks:
      - distributed_web
     volumes:
@@ -49,38 +50,42 @@ services:
   web-node-one:
     build: 
      context: .
-     dockerfile: Web.NodeOne/Docker/Dockerfile    
+     dockerfile: Web.NodeOne/Docker/Dockerfile
+    environment:
+     - ASPNETCORE_ENVIRONMENT=Development
+     - ASPNETCORE_HTTPS_PORT=5001   
     ports:
-     - "44352:44352"
-    image: web-node-one:net5.0
+     - "5001:5001"    
     networks:
      - distributed_web
     depends_on:
      - dotnet
-     - db-store
+     - db-store     
   web-node-two:
     build: 
      context: .
      dockerfile: Web.NodeTwo/Docker/Dockerfile
+    environment:
+     - ASPNETCORE_HTTPS_PORT=5002
     ports:
-     - "5001:5001"
-    image: web-node-two:net5.0
+     - "5002:5002"    
     networks:
      - distributed_web
     depends_on:
      - dotnet
-     - kafka     
+     - kafka        
   web-node-three:
     build: 
      context: .
      dockerfile: Web.NodeThree/Docker/Dockerfile
+    environment:
+     - ASPNETCORE_HTTPS_PORT=5003
     ports:
-     - "5003:5003"
-    image: web-node-three:net5.0
+     - "5003:5003"    
     networks:
      - distributed_web
     depends_on:
      - dotnet
-     - kafka
+     - kafka    
 networks:
  distributed_web:
