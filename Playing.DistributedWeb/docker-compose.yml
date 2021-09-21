@@ -52,6 +52,7 @@ services:
      dockerfile: Web.NodeOne/Docker/Dockerfile    
     ports:
      - "44352:44352"
+    image: web-node-one:net5.0
     networks:
      - distributed_web
     depends_on:
@@ -63,6 +64,7 @@ services:
      dockerfile: Web.NodeTwo/Docker/Dockerfile
     ports:
      - "5001:5001"
+    image: web-node-two:net5.0
     networks:
      - distributed_web
     depends_on:
@@ -74,6 +76,7 @@ services:
      dockerfile: Web.NodeThree/Docker/Dockerfile
     ports:
      - "5003:5003"
+    image: web-node-three:net5.0
     networks:
      - distributed_web
     depends_on:
