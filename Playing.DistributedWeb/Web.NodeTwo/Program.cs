@@ -22,6 +22,7 @@ namespace Web.NodeTwo
 			var conf = new ConfigurationBuilder()
 				.SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
 				.AddJsonFile("appsettings.json")
+				.AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", true)
 				.Build();
 
 			var options = conf.GetSection("KafkaOptions")?.Get<KafkaOptions>();

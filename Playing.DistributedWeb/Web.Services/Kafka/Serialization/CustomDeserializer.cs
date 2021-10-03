@@ -9,7 +9,7 @@ namespace Web.Services.Kafka.Serialization
 		public T Deserialize(ReadOnlySpan<byte> data, bool isNull, Confluent.Kafka.SerializationContext context)
 		{
 			if (data.IsEmpty)
-				return default(T);
+				return default;
 
 			return Serializer.Deserialize<T>(data);
 		}

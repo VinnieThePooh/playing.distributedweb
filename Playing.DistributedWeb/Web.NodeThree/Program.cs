@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using System;
+using Microsoft.Extensions.Configuration;
 
 namespace Web.NodeThree
 {
@@ -10,6 +11,12 @@ namespace Web.NodeThree
 		{
 			Console.Title = "Web.NodeThree";
 			AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+
+			var conf = new ConfigurationBuilder()
+				.SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+				.AddJsonFile("appsettings.json")
+				.AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", true)
+				.Build();
 
 			var host = CreateHostBuilder(args).Build();
 			host.Run();
