@@ -14,19 +14,33 @@ namespace Web.Common.Extensions
 		/// <param name="tagValue">Actual name of event happened</param>
 		public static void AuditEvent(this ITracer tracer, string operationName, string tagName, string tagValue)
 		{
-			if (string.IsNullOrEmpty(operationName))
-				throw new ArgumentException(nameof(operationName));
+			ThrowIfIncorrectValues(operationName, tagName, tagValue);
+			using var scope = tracer
+				.BuildSpan(operationName)
+				.WithTag(tagName, tagValue)
+				.WithStartTimestamp(DateTimeOffset.Now).StartActive();
+		}
+
+		public static ISpan StartAuditActivity(this ITracer tracer, string operationName, string tagName,
+			string tagValue)
+		{
+			ThrowIfIncorrectValues(operationName, tagName, tagValue);
+			return tracer
+					.BuildSpan(operationName)
+					.WithTag(tagName, tagValue)
+					.WithStartTimestamp(DateTimeOffset.Now).Start();
+		}
+
+		private static void ThrowIfIncorrectValues(string opName, string tagName, string tagValue)
+		{
+			if (string.IsNullOrEmpty(opName))
+				throw new ArgumentException(nameof(opName));
 
 			if (string.IsNullOrEmpty(tagName))
 				throw new ArgumentException(nameof(tagName));
 
 			if (string.IsNullOrEmpty(tagValue))
 				throw new ArgumentException(nameof(tagValue));
-
-			using var scope = tracer
-				.BuildSpan(operationName)
-				.WithTag(tagName, tagValue)
-				.WithStartTimestamp(DateTime.Now).StartActive();
 		}
 	}
 }

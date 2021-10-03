@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Web.Common.Extensions;
 using Web.DataAccess.Interfaces;
 using Web.HostedServices.Interfaces;
 using Web.MessagingModels;
@@ -60,22 +61,15 @@ namespace Web.NodeOne.Controllers
 
 		[HttpPost("end-roundtrip-batch")]
 		public async Task<ActionResult> AcceptMessages(IEnumerable<SampleMessage> messages)
-		{  
-			// track persisting too
+		{
 			var now = DateTime.Now;
-			var span = _tracer
-				.BuildSpan(OperationNames.DB_PERSIST)
-				.WithTag(JaegerTagNames.NodeOne, JaegerTagValues.NodeOne.BATCH_RECEIVED)
-				.WithStartTimestamp(now);
+			var started = _tracer.StartAuditActivity(OperationNames.DB_PERSIST, JaegerTagNames.NodeOne, JaegerTagValues.NodeOne.BATCH_RECEIVED);
 
 			foreach (var message in messages)
 				message.End_Timestamp = now;
 
-			ISpan started = null;
-
 			try
 			{
-				started = span.Start();
 				await _messagesRepository.InsertBatch(messages);
 				Debug.WriteLine($"Received data batch ({messages.Count()} of SampleMessage entity) and successfully persisted it to MariaDb");
 				started.Finish(DateTimeOffset.Now);
@@ -84,11 +78,11 @@ namespace Web.NodeOne.Controllers
 			catch (Exception e)
 			{
 				//todo: serilog here
-				var messageLog = $"{OperationNames.DB_PERSIST}: error saving batch data: {e}";
+				var logMessage = $"{OperationNames.DB_PERSIST}: error saving batch data: {e}";
 				var offsetNow = DateTimeOffset.Now;
-				started.Log(offsetNow, messageLog);
+				started.Log(offsetNow, logMessage);
 				started.Finish(offsetNow);
-				return StatusCode(StatusCodes.Status500InternalServerError, messages);
+				return StatusCode(StatusCodes.Status500InternalServerError, logMessage);
 			}
 		}
 	}
