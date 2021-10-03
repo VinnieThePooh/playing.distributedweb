@@ -9,6 +9,7 @@ using Confluent.Kafka;
 using Web.MessagingModels;
 using Web.Services.Interfaces;
 using OpenTracing;
+using Web.Common.Extensions;
 using Web.MessagingModels.Constants;
 
 namespace Web.HostedServices
@@ -35,48 +36,45 @@ namespace Web.HostedServices
 			while(!stoppingToken.IsCancellationRequested)
 			{
 				int counter = 0;
-				while(true)
+
+				ISpan started = null;
+				try
 				{
-					ISpan started = null;
-					try
-					{
-						consumingCancellationToken.ThrowIfCancellationRequested();
-						//blocking operation
-						var consumeResult = SampleMessageConsumer.Consume(consumingCancellationToken);
+					consumingCancellationToken.ThrowIfCancellationRequested();
+					//blocking operation
+					var consumeResult = SampleMessageConsumer.Consume(consumingCancellationToken);
 
-						var now = DateTime.Now;
+					var now = DateTime.Now;
 
-						var builder = _tracer
-							.BuildSpan(OperationNames.KAFKA_MESSAGE_CONSUMED)
-							.WithTag(JaegerTagNames.NodeThree, JaegerTagValues.NodeThree.KAFKA_MESSAGE_CONSUMED);
-						started = builder.Start();
+					_tracer.AuditEvent(OperationNames.KAFKA_MESSAGE_CONSUMED, 
+						JaegerTagNames.NodeThree, 
+						JaegerTagValues.NodeThree.KAFKA_MESSAGE_CONSUMED);
 
-						var message = consumeResult.Message.Value;
-						message.NodeThree_Timestamp = now;
+					var message = consumeResult.Message.Value;
+					message.NodeThree_Timestamp = now;
 
 #if DEBUG
-						var json = message.ToJson();
-						var traceMessage = $"{++counter}. Kafka consumer received: {json}";					
-						Console.WriteLine(traceMessage);
+					var json = message.ToJson();
+					var traceMessage = $"{++counter}. Kafka consumer received: {json}";					
+					Console.WriteLine(traceMessage);
 #endif
-						await RestSender.AddToBatch(message);
-						started.Finish(DateTime.Now);
+					await RestSender.AddToBatch(message);
+					started.Finish(DateTime.Now);
 
-					}
-					catch (OperationCanceledException e)
-					{
-						//todo: serilog here
-						var logMessage = $"{OperationNames.WORK_CANCELLED}: {nameof(KafkaConsumerService)}: working was cancelled";
-						started.Log(DateTimeOffset.Now, logMessage);
-						started.Finish(DateTime.Now);
-					}
-					catch(Exception e)
-					{
-						//todo: serilog here
-						var logMessage = $"{OperationNames.WORK_FAILED}: {nameof(KafkaConsumerService)}: Error: {e}";
-						started.Log(DateTimeOffset.Now, logMessage);
-						started.Finish(DateTimeOffset.Now);
-					}
+				}
+				catch (OperationCanceledException e)
+				{
+					//todo: serilog here
+					var logMessage = $"{OperationNames.WORK_CANCELLED}: {nameof(KafkaConsumerService)}: working was cancelled";
+					started.Log(DateTimeOffset.Now, logMessage);
+					started.Finish(DateTime.Now);
+				}
+				catch(Exception e)
+				{
+					//todo: serilog here
+					var logMessage = $"{OperationNames.WORK_FAILED}: {nameof(KafkaConsumerService)}: Error: {e}";
+					started.Log(DateTimeOffset.Now, logMessage);
+					started.Finish(DateTimeOffset.Now);
 				}
 			}
 		}

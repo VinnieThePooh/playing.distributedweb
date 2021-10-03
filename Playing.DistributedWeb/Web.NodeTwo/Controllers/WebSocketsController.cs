@@ -14,6 +14,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenTracing.Tag;
+using Web.Common.Extensions;
 using Web.MessagingModels;
 using Web.MessagingModels.Constants;
 using Web.MessagingModels.Extensions;
@@ -95,7 +96,9 @@ namespace Web.NodeTwo.Controllers
 					statistics.MessagesReceived++;
 					bytes.Clear();
 
-					MakeJaegerAudit();
+					_tracer.AuditEvent(OperationNames.WS_DATA_RECEIVE,
+									JaegerTagNames.NodeTwo, 
+									JaegerTagValues.NodeTwo.SOCKET_SERVER_MESSAGE_RECEIVED);
 
 					if (KafkaOptions.ProduceToKafka)
 					{
@@ -145,14 +148,6 @@ namespace Web.NodeTwo.Controllers
 		private bool CheckForCloseIntention(ref WebSocketReceiveResult receiveResult)
 		{
 			return receiveResult.CloseStatus != null || receiveResult.MessageType == WebSocketMessageType.Close;
-		}
-
-		private void MakeJaegerAudit()
-		{
-			using var scope = _tracer
-				.BuildSpan(OperationNames.WS_DATA_RECEIVE)
-				.WithTag(JaegerTagNames.NodeTwo, JaegerTagValues.NodeTwo.SOCKET_SERVER_MESSAGE_RECEIVED)
-				.WithStartTimestamp(DateTime.Now).StartActive();
 		}
 	}
 }

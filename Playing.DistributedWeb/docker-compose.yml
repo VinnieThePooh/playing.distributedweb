@@ -16,8 +16,8 @@ services:
     image: mariadb:latest
     restart: always
     environment:
-     #- MARIADB_ROOT_PASSWORD:mariarootPass1@
-     - MARIADB_ALLOW_EMPTY_ROOT_PASSWORD:true
+     - MARIADB_ROOT_PASSWORD:mariarootPass1@
+     #- MARIADB_ALLOW_EMPTY_ROOT_PASSWORD:true
     networks:
      - distributed_web
     volumes:
