@@ -35,6 +35,8 @@ namespace Web.DataAccess.Repositories
 
 		public Task InsertNewMessage(SampleMessage newMessage)
 		{
+			throw new NotImplementedException();
+
 			if (newMessage is null)
 				throw new ArgumentNullException(nameof(newMessage));
 
