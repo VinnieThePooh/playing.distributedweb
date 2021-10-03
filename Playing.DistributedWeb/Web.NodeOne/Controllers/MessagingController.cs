@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Web.DataAccess.Interfaces;
 using Web.HostedServices.Interfaces;
 using Web.MessagingModels;
+using Web.MessagingModels.Constants;
 
 namespace Web.NodeOne.Controllers
 {
@@ -22,8 +23,8 @@ namespace Web.NodeOne.Controllers
 
 		public MessagingController(IWebSocketClientService webSocketClient, ISampleMessageRepository messagesRepository, ITracer tracer)
 		{
-			_webSocketClient = webSocketClient ?? throw new System.ArgumentNullException(nameof(webSocketClient));
-			_messagesRepository = messagesRepository ?? throw new System.ArgumentNullException(nameof(messagesRepository));
+			_webSocketClient = webSocketClient ?? throw new ArgumentNullException(nameof(webSocketClient));
+			_messagesRepository = messagesRepository ?? throw new ArgumentNullException(nameof(messagesRepository));
 			_tracer = tracer;
 		}
 
@@ -59,18 +60,36 @@ namespace Web.NodeOne.Controllers
 
 		[HttpPost("end-roundtrip-batch")]
 		public async Task<ActionResult> AcceptMessages(IEnumerable<SampleMessage> messages)
-		{
+		{  
+			// track persisting too
 			var now = DateTime.Now;
-			var span = _tracer.BuildSpan("end-roundtrip-batch").WithStartTimestamp(now);
-			
+			var span = _tracer
+				.BuildSpan(OperationNames.DB_PERSIST)
+				.WithTag(JaegerTagNames.NodeOne, JaegerTagValues.NodeOne.BATCH_RECEIVED)
+				.WithStartTimestamp(now);
+
 			foreach (var message in messages)
 				message.End_Timestamp = now;
 
-			var started = span.Start();	
-			await _messagesRepository.InsertBatch(messages);
-			Debug.WriteLine($"Received data batch ({messages.Count()} of SampleMessage entity) and successfully persisted it to MariaDb");
-			started.Finish(DateTimeOffset.Now);
-			return Accepted();
+			ISpan started = null;
+
+			try
+			{
+				started = span.Start();
+				await _messagesRepository.InsertBatch(messages);
+				Debug.WriteLine($"Received data batch ({messages.Count()} of SampleMessage entity) and successfully persisted it to MariaDb");
+				started.Finish(DateTimeOffset.Now);
+				return Accepted();
+			}
+			catch (Exception e)
+			{
+				//todo: serilog here
+				var messageLog = $"{OperationNames.DB_PERSIST}: error saving batch data: {e}";
+				var offsetNow = DateTimeOffset.Now;
+				started.Log(offsetNow, messageLog);
+				started.Finish(offsetNow);
+				return StatusCode(StatusCodes.Status500InternalServerError, messages);
+			}
 		}
 	}
 }

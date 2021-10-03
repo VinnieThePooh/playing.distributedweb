@@ -13,7 +13,9 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using OpenTracing.Tag;
 using Web.MessagingModels;
+using Web.MessagingModels.Constants;
 using Web.MessagingModels.Extensions;
 using Web.MessagingModels.Models;
 using Web.MessagingModels.Options;
@@ -53,6 +55,7 @@ namespace Web.NodeTwo.Controllers
 			await HandleWebSocketDataDemo(HttpContext, webSocket, _producer);
 		}
 
+		//todo: add exception handling
 		private async Task HandleWebSocketDataDemo(HttpContext context, WebSocket webSocket, ISampleMessageProducer<Null> producer)
 		{			
 			var buffer = new byte[1024 * 4];
@@ -66,8 +69,6 @@ namespace Web.NodeTwo.Controllers
 			int? sessionId = null;
 
 			Stopwatch sw = Stopwatch.StartNew();
-			var span = _tracer.BuildSpan("web-socket-session-begin").WithStartTimestamp(DateTime.Now);
-			var started = span.Start();
 			while (webSocket.State == WebSocketState.Open || webSocket.State == WebSocketState.CloseReceived)
 			{
 				bytes.AddRange(bytesSegment.Slice(0, result.Count));
@@ -90,13 +91,25 @@ namespace Web.NodeTwo.Controllers
 					message.NodeTwo_Timestamp = DateTime.Now;
 					if (sessionId is null)
 						sessionId = message.SessionId;
-					
+
 					statistics.MessagesReceived++;
 					bytes.Clear();
 
+					MakeJaegerAudit();
+
 					if (KafkaOptions.ProduceToKafka)
 					{
-						var deliveryResult = await producer.ProduceAsync(message, CancellationToken.None);
+						try
+						{
+							var deliveryResult = await producer.ProduceAsync(message, CancellationToken.None);
+						}
+						catch (Exception e)
+						{
+							var errorMessage = $"{OperationNames.WORK_FAILED}: Kafka producer failed to produce: {e}";
+
+							//todo: serilog here
+							Console.WriteLine(errorMessage);
+						}
 #if DEBUG
 						Console.WriteLine($" Web.NodeTwo: {counter++}. WebSocket server received and kafka producer retransmitted: {message.ToJson()}");
 #endif
@@ -104,7 +117,7 @@ namespace Web.NodeTwo.Controllers
 					else
 					{
 #if DEBUG
-						Console.WriteLine($" Web.NodeTwo: {counter++}. WebSocket server received: {message.ToJson()}");
+					Console.WriteLine($" Web.NodeTwo: {counter++}. WebSocket server received: {message.ToJson()}");
 #endif
 					}
 				}
@@ -115,7 +128,6 @@ namespace Web.NodeTwo.Controllers
 				{
 					sw.Stop();
 					statistics.ActualDuration = sw.ElapsedMilliseconds;
-					started.Finish(DateTime.Now);
 					await webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, null, CancellationToken.None);
 					break;
 				}
@@ -130,9 +142,17 @@ namespace Web.NodeTwo.Controllers
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		bool CheckForCloseIntention(ref WebSocketReceiveResult receiveResult)
+		private bool CheckForCloseIntention(ref WebSocketReceiveResult receiveResult)
 		{
 			return receiveResult.CloseStatus != null || receiveResult.MessageType == WebSocketMessageType.Close;
+		}
+
+		private void MakeJaegerAudit()
+		{
+			using var scope = _tracer
+				.BuildSpan(OperationNames.WS_DATA_RECEIVE)
+				.WithTag(JaegerTagNames.NodeTwo, JaegerTagValues.NodeTwo.SOCKET_SERVER_MESSAGE_RECEIVED)
+				.WithStartTimestamp(DateTime.Now).StartActive();
 		}
 	}
 }

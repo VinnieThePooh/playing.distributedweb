@@ -3,16 +3,13 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Web.HostedServices.Interfaces;
-using Web.MessagingModels.Models;
 using Web.Services.Kafka.Consumers;
 using Web.MessagingModels.Extensions;
-using System.Diagnostics;
 using Confluent.Kafka;
 using Web.MessagingModels;
-using Microsoft.Extensions.Options;
-using Web.MessagingModels.Options;
 using Web.Services.Interfaces;
 using OpenTracing;
+using Web.MessagingModels.Constants;
 
 namespace Web.HostedServices
 {
@@ -46,30 +43,39 @@ namespace Web.HostedServices
 						consumingCancellationToken.ThrowIfCancellationRequested();
 						//blocking operation
 						var consumeResult = SampleMessageConsumer.Consume(consumingCancellationToken);
+
+						var now = DateTime.Now;
+
+						var builder = _tracer
+							.BuildSpan(OperationNames.KAFKA_MESSAGE_CONSUMED)
+							.WithTag(JaegerTagNames.NodeThree, JaegerTagValues.NodeThree.KAFKA_MESSAGE_CONSUMED);
+						started = builder.Start();
+
 						var message = consumeResult.Message.Value;
-						message.NodeThree_Timestamp = DateTime.Now;
+						message.NodeThree_Timestamp = now;
 
 #if DEBUG
 						var json = message.ToJson();
 						var traceMessage = $"{++counter}. Kafka consumer received: {json}";					
 						Console.WriteLine(traceMessage);
 #endif
-												
-						var span = _tracer.BuildSpan("Adding to Batch").WithStartTimestamp(DateTime.Now);
-						started = span.Start();
-						// try to trace data sending
 						await RestSender.AddToBatch(message);
 						started.Finish(DateTime.Now);
 
 					}
 					catch (OperationCanceledException e)
 					{
+						//todo: serilog here
+						var logMessage = $"{OperationNames.WORK_CANCELLED}: {nameof(KafkaConsumerService)}: working was cancelled";
+						started.Log(DateTimeOffset.Now, logMessage);
 						started.Finish(DateTime.Now);
-						//do nothing
 					}
 					catch(Exception e)
 					{
-						//do log here
+						//todo: serilog here
+						var logMessage = $"{OperationNames.WORK_FAILED}: {nameof(KafkaConsumerService)}: Error: {e}";
+						started.Log(DateTimeOffset.Now, logMessage);
+						started.Finish(DateTimeOffset.Now);
 					}
 				}
 			}

@@ -39,7 +39,7 @@ namespace Web.Services.Rest
 				var client = new HttpClient(handler);
 				client.BaseAddress = new Uri(TalkOptions.EndPointUrl);				
 				return client;
-			});			
+			});
 		}
 
 		public RestTalkOptions TalkOptions { get; }
@@ -93,8 +93,7 @@ namespace Web.Services.Rest
 		private async Task PostData(IEnumerable<SampleMessage> messages)
 		{
 			//todo: configure it later for effective reusing
-
-			var content = JsonContent.Create(messages);			
+			var content = JsonContent.Create(messages);
 			var result = await _httpClient.PostAsync((Uri?)null, content);
 			result.EnsureSuccessStatusCode();
 		}
