@@ -10,7 +10,7 @@ namespace Web.Common.Extensions
 		/// </summary>
 		/// <param name="tracer"></param>
 		/// <param name="operationName">Long-running process name or parent activity(span) name.</param>
-		/// <param name="tagName">WebNode name</param>
+		/// <param name="tagName">Web-service name</param>
 		/// <param name="tagValue">Actual name of event happened</param>
 		public static void AuditEvent(this ITracer tracer, string operationName, string tagName, string tagValue)
 		{
