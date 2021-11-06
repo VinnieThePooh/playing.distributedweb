@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using System;
 using Microsoft.Extensions.Configuration;
+using Web.MessagingModels.Options;
 
 namespace Web.NodeThree
 {
@@ -16,9 +17,14 @@ namespace Web.NodeThree
 				.SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
 				.AddJsonFile("appsettings.json")
 				.AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", true)
+				.AddEnvironmentVariables()
 				.Build();
 
 			var host = CreateHostBuilder(args).Build();
+
+			var options = conf.GetSection("KafkaOptions").Get<KafkaOptions>();
+			Console.WriteLine($"Kafka bootstrap server Url: {options.BootstrapServerUrl}");
+
 			host.Run();
 		}
 

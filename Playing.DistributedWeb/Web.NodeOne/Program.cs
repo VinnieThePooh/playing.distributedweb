@@ -24,6 +24,7 @@ namespace Web.NodeOne
 				.SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
 				.AddJsonFile("appsettings.json")
 				.AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", true)
+				.AddEnvironmentVariables()
 				.Build();
 
 			var connString = conf.GetConnectionString("MariaDb");

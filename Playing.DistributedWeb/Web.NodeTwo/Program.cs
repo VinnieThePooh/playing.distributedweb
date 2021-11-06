@@ -23,9 +23,11 @@ namespace Web.NodeTwo
 				.SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
 				.AddJsonFile("appsettings.json")
 				.AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", true)
+				.AddEnvironmentVariables()
 				.Build();
 
-			var options = conf.GetSection("KafkaOptions")?.Get<KafkaOptions>();
+			var options = conf.GetSection("KafkaOptions").Get<KafkaOptions>();
+			Console.WriteLine($"Kafka bootstrap server Url: {options.BootstrapServerUrl}");
 			await EnsureKafkaTopicExists(host, options?.TopicName);
 
 			host.Run();
