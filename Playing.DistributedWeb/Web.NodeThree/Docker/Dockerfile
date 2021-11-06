@@ -1,9 +1,8 @@
 ﻿FROM mcr.microsoft.com/dotnet/sdk:5.0
 ARG ENV_NAME=Docker
-ARG HTTPS_CERT_GEN_PASS=devcertpass
 COPY . /app
 WORKDIR /app/https/
+COPY ./devcert.pfx .
 WORKDIR /app/Web.NodeThree/
-RUN dotnet dev-certs https -ep /app/https/devcert3.pfx -p ${HTTPS_CERT_GEN_PASS}
 RUN dotnet restore Web.NodeThree.csproj
-CMD ["dotnet", "run", "-c release", "--no-restore", "-p Web.NodeThree.csproj"]
+CMD ["dotnet", "run", "-c release", "--no-restore", "-p Web.NodeThree.csproj", "--environment=${ENV_NAME}"]

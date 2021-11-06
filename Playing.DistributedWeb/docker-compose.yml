@@ -1,8 +1,7 @@
 version: "3.9"
 services:  
   jaeger:
-    image: jaegertracing/all-in-one:latest
-    restart: always
+    image: jaegertracing/all-in-one:latest    
     ports:
       - "6831:6831/udp"
       - "16686:16686"
@@ -13,8 +12,7 @@ services:
         
   # works on linux platform only
   db-store:
-    image: mariadb:latest
-    restart: always
+    image: mariadb:latest    
     environment:     
      - MARIADB_ALLOW_EMPTY_ROOT_PASSWORD:true
     networks:
@@ -45,7 +43,7 @@ services:
     - KAFKA_LISTENERS=PLAINTEXT://kafka-host:9092
     - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka-host:9092
     - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
-    - ALLOW_PLAINTEXT_LISTENER=yes
+    - ALLOW_PLAINTEXT_LISTENER=yes 
     depends_on:
     - zookeeper
     networks:
@@ -56,16 +54,16 @@ services:
   web-node-one:
     build: 
      context: .
-     dockerfile: Web.NodeOne/Docker/Dockerfile
-     args:
-      HTTPS_CERT_GEN_PASS: ${HTTPS_CERT_GEN_PASS}
+     dockerfile: ./Web.NodeOne/Docker/Dockerfile
+     args:      
       ENV_NAME: ${ENV_NAME}
+    container_name: web-node-one
     environment:     
-     - ASPNETCORE_ENVIRONMENT=Docker
+     - ASPNETCORE_ENVIRONMENT=${ENV_NAME}
      - ASPNETCORE_URLS=https://web-node-one:5001
      - ASPNETCORE_HTTPS_PORT=5001
      - ASPNETCORE_Kestrel__Certificates__Default__Password=${HTTPS_CERT_GEN_PASS}
-     - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/https/devcert1.pfx"
+     - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/https/devcert.pfx"
     ports:
      - "5001:5001"    
     networks:
@@ -78,16 +76,16 @@ services:
   web-node-two:
     build: 
      context: .
-     dockerfile: Web.NodeTwo/Docker/Dockerfile
-     args:
-      HTTPS_CERT_GEN_PASS: ${HTTPS_CERT_GEN_PASS}
+     dockerfile: ./Web.NodeTwo/Docker/Dockerfile
+     args:      
       ENV_NAME: ${ENV_NAME}
+    container_name: web-node-two
     environment:
-     - ASPNETCORE_ENVIRONMENT=Docker
+     - ASPNETCORE_ENVIRONMENT=${ENV_NAME}
      - ASPNETCORE_URLS=https://web-node-two:5002
      - ASPNETCORE_HTTPS_PORT=5002
      - ASPNETCORE_Kestrel__Certificates__Default__Password=${HTTPS_CERT_GEN_PASS}
-     - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/https/devcert2.pfx"
+     - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/https/devcert.pfx"
     ports:
      - "5002:5002"    
     networks:
@@ -100,16 +98,16 @@ services:
   web-node-three:
     build: 
      context: .
-     dockerfile: Web.NodeThree/Docker/Dockerfile`
-     args:
-      HTTPS_CERT_GEN_PASS: ${HTTPS_CERT_GEN_PASS}
+     dockerfile: ./Web.NodeThree/Docker/Dockerfile
+     args:      
       ENV_NAME: ${ENV_NAME}
+    container_name: web-node-three
     environment:
-     - ASPNETCORE_ENVIRONMENT=Docker
+     - ASPNETCORE_ENVIRONMENT=${ENV_NAME}
      - ASPNETCORE_URLS=https://web-node-three:5003
      - ASPNETCORE_HTTPS_PORT=5003
      - ASPNETCORE_Kestrel__Certificates__Default__Password=${HTTPS_CERT_GEN_PASS}
-     - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/https/devcert3.pfx"
+     - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/https/devcert.pfx"
     ports:
      - "5003:5003"  
     networks:

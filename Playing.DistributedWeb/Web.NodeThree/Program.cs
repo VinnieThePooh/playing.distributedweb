@@ -12,15 +12,19 @@ namespace Web.NodeThree
 		{
 			Console.Title = "Web.NodeThree";
 			AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+			var envName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+			var postfix = envName == "Production" ? string.Empty : envName + ".";
 
 			var conf = new ConfigurationBuilder()
 				.SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-				.AddJsonFile("appsettings.json")
-				.AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", true)
+				.AddJsonFile($"appsettings.{postfix}json", false)
 				.AddEnvironmentVariables()
+				.AddCommandLine(args)
 				.Build();
 
 			var host = CreateHostBuilder(args).Build();
+
+			Console.WriteLine($"Environment: {envName}");
 
 			var options = conf.GetSection("KafkaOptions").Get<KafkaOptions>();
 			Console.WriteLine($"Kafka bootstrap server Url: {options.BootstrapServerUrl}");

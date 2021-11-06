@@ -17,19 +17,22 @@ namespace Web.NodeTwo
 			Console.Title = "Web.NodeTwo";
 			AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
-			var host = CreateHostBuilder(args).Build();
+			var envName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+			var postfix = envName == "Production" ? string.Empty : envName + ".";
 
+			var host = CreateHostBuilder(args).Build();
 			var conf = new ConfigurationBuilder()
 				.SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-				.AddJsonFile("appsettings.json")
-				.AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", true)
+				.AddJsonFile($"appsettings.{postfix}json", false)
 				.AddEnvironmentVariables()
+				.AddCommandLine(args)
 				.Build();
+
+			Console.WriteLine($"Environment: {envName}");
 
 			var options = conf.GetSection("KafkaOptions").Get<KafkaOptions>();
 			Console.WriteLine($"Kafka bootstrap server Url: {options.BootstrapServerUrl}");
 			await EnsureKafkaTopicExists(host, options?.TopicName);
-
 			host.Run();
 		}
 

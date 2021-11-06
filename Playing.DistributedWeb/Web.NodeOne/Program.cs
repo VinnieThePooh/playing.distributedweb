@@ -8,6 +8,7 @@ using Serilog.Events;
 using Web.DataAccess;
 using Web.DataAccess.Interfaces;
 using Web.DataAccess.Repositories;
+using Console = System.Console;
 
 namespace Web.NodeOne
 {
@@ -19,15 +20,21 @@ namespace Web.NodeOne
 		{
 			Console.Title = "Web.NodeOne";
 			AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+			
+			var envName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+			var postfix = envName == "Production" ? string.Empty : envName + ".";
 
 			var conf = new ConfigurationBuilder()
 				.SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-				.AddJsonFile("appsettings.json")
-				.AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", true)
+				.AddJsonFile($"appsettings.{postfix}json", false)
 				.AddEnvironmentVariables()
+				.AddCommandLine(args)
 				.Build();
 
 			var connString = conf.GetConnectionString("MariaDb");
+			Console.WriteLine($"Connection String: {connString}");
+
+			Console.WriteLine($"Environment: {envName}");
 
 			await SimpleMariaDbInitializer.Instance.InitializeDb(connString);
 
