@@ -2,7 +2,6 @@
 ARG ENV_NAME=Docker
 COPY . /app
 WORKDIR /app/https/
-COPY ./devcert.pfx .
 WORKDIR /app/Web.NodeTwo/
 RUN dotnet restore Web.NodeTwo.csproj
-CMD ["dotnet", "run", "-c release", "--no-restore", "-p Web.NodeTwo.csproj", "--environment=${ENV_NAME}"]
+CMD ["dotnet", "run", "-c release", "--no-restore", "-p Web.NodeTwo.csproj", "--environment ${ENV_NAME}"]

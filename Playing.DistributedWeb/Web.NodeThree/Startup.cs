@@ -1,3 +1,4 @@
+using System;
 using Confluent.Kafka;
 using Jaeger;
 using Jaeger.Reporters;
@@ -67,6 +68,8 @@ namespace Web.NodeThree
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
 		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 		{
+			Console.WriteLine($"Environment (from startup): {env.EnvironmentName}");
+
 			if (env.IsDevelopment())
 			{
 				app.UseDeveloperExceptionPage();

@@ -26,8 +26,8 @@ namespace Web.NodeOne
 
 			var conf = new ConfigurationBuilder()
 				.SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-				.AddJsonFile($"appsettings.{postfix}json", false)
-				.AddEnvironmentVariables()
+				.AddJsonFile($"appsettings.json", true, true)
+				.AddJsonFile($"appsettings.{envName}.json", true)
 				.AddCommandLine(args)
 				.Build();
 
@@ -38,8 +38,8 @@ namespace Web.NodeOne
 
 			await SimpleMariaDbInitializer.Instance.InitializeDb(connString);
 
-			var host = CreateHostBuilder(args).Build();
-
+			var host = CreateHostBuilder(args, conf).Build();
+			
 			var repo = (ISampleMessageRepository) host.Services.GetService(typeof(ISampleMessageRepository));
 			await repo.SetCachedLastSessionId(await repo.GetLastSessionId());
 			host.Run();
@@ -51,11 +51,12 @@ namespace Web.NodeOne
 			Console.WriteLine($"Unhandled exception: {e.ExceptionObject}");
 		}
 
-		public static IHostBuilder CreateHostBuilder(string[] args) =>
+		public static IHostBuilder CreateHostBuilder(string[] args, IConfiguration conf) =>
 			Host.CreateDefaultBuilder(args)
 				.ConfigureWebHostDefaults(webBuilder =>
 				{
 					webBuilder.UseStartup<Startup>();
-				});				
+					webBuilder.UseConfiguration(conf);
+				});
 	}
 }

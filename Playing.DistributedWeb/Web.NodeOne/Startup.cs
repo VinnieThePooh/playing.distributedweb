@@ -1,3 +1,4 @@
+using System;
 using Jaeger;
 using Jaeger.Reporters;
 using Jaeger.Samplers;
@@ -65,7 +66,9 @@ namespace Web.NodeOne
 
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
 		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-		{
+		{  
+			Console.WriteLine($"Environment (from startup): {env.EnvironmentName}");
+
 			if (env.IsDevelopment())
 			{
 				app.UseDeveloperExceptionPage();

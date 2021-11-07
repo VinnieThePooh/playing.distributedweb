@@ -17,17 +17,17 @@ namespace Web.NodeThree
 
 			var conf = new ConfigurationBuilder()
 				.SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-				.AddJsonFile($"appsettings.{postfix}json", false)
-				.AddEnvironmentVariables()
+				.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+				.AddJsonFile($"appsettings.{envName}.json", true)
 				.AddCommandLine(args)
 				.Build();
 
-			var host = CreateHostBuilder(args).Build();
+			var host = CreateHostBuilder(args, conf).Build();
 
 			Console.WriteLine($"Environment: {envName}");
 
-			var options = conf.GetSection("KafkaOptions").Get<KafkaOptions>();
-			Console.WriteLine($"Kafka bootstrap server Url: {options.BootstrapServerUrl}");
+			//var options = conf.GetSection("KafkaOptions").Get<KafkaOptions>();
+			//Console.WriteLine($"Kafka bootstrap server Url: {options.BootstrapServerUrl}");
 
 			host.Run();
 		}
@@ -38,13 +38,12 @@ namespace Web.NodeThree
 			Console.WriteLine($"Unhandled exception: {e.ExceptionObject}");
 		}
 
-		public static IHostBuilder CreateHostBuilder(string[] args) =>
+		public static IHostBuilder CreateHostBuilder(string[] args, IConfiguration conf) =>
 			Host.CreateDefaultBuilder(args)
 				.ConfigureWebHostDefaults(webBuilder =>
 				{
 					webBuilder.UseStartup<Startup>();
+					webBuilder.UseConfiguration(conf);
 				});
-
-
 	}
 }

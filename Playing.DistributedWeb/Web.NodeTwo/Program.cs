@@ -17,17 +17,19 @@ namespace Web.NodeTwo
 			Console.Title = "Web.NodeTwo";
 			AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
 
+			// why Development is here?
 			var envName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
 			var postfix = envName == "Production" ? string.Empty : envName + ".";
-
-			var host = CreateHostBuilder(args).Build();
+			
 			var conf = new ConfigurationBuilder()
 				.SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-				.AddJsonFile($"appsettings.{postfix}json", false)
-				.AddEnvironmentVariables()
+				.AddJsonFile($"appsettings.json", true, reloadOnChange:true)
+				.AddJsonFile($"appsettings.{envName}.json", true)
 				.AddCommandLine(args)
 				.Build();
 
+			var host = CreateHostBuilder(args, conf).Build();
+			
 			Console.WriteLine($"Environment: {envName}");
 
 			var options = conf.GetSection("KafkaOptions").Get<KafkaOptions>();
@@ -42,13 +44,15 @@ namespace Web.NodeTwo
 			Console.WriteLine($"Unhandled exception: {e.ExceptionObject}");
 		}
 
-		public static IHostBuilder CreateHostBuilder(string[] args) =>
+		public static IHostBuilder CreateHostBuilder(string[] args, IConfiguration conf) =>
 			Host.CreateDefaultBuilder(args)
 				.ConfigureWebHostDefaults(webBuilder =>
 				{
 					webBuilder.UseStartup<Startup>();
+					webBuilder.UseConfiguration(conf);
 				});
-		
+
+
 		//todo: implement it later or reconsider for others ways (built-in)
 		private static async Task EnsureKafkaTopicExists(IHost host, string topicName)
 		{

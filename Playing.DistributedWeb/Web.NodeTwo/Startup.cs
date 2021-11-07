@@ -65,6 +65,8 @@ namespace Web.NodeTwo
 		// This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
 		public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
 		{
+			Console.WriteLine($"Environment (from startup): {env.EnvironmentName}");
+
 			app.UseWebSockets();
 
 			if (env.IsDevelopment())

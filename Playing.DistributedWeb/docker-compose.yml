@@ -65,7 +65,9 @@ services:
      - ASPNETCORE_Kestrel__Certificates__Default__Password=${HTTPS_CERT_GEN_PASS}
      - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/https/devcert.pfx"
     ports:
-     - "5001:5001"    
+     - "5001:5001"   
+    volumes:
+     - ./certs/:/app/https/
     networks:
      distributed_web:
       aliases:
@@ -88,6 +90,8 @@ services:
      - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/https/devcert.pfx"
     ports:
      - "5002:5002"    
+    volumes:     
+     - ./certs/:/app/https/
     networks:
      distributed_web:
       aliases:
@@ -98,7 +102,7 @@ services:
   web-node-three:
     build: 
      context: .
-     dockerfile: ./Web.NodeThree/Docker/Dockerfile
+     dockerfile: ./Web.NodeThree/Docker/Dockerfile 
      args:      
       ENV_NAME: ${ENV_NAME}
     container_name: web-node-three
@@ -109,7 +113,9 @@ services:
      - ASPNETCORE_Kestrel__Certificates__Default__Password=${HTTPS_CERT_GEN_PASS}
      - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/https/devcert.pfx"
     ports:
-     - "5003:5003"  
+     - "5003:5003"
+    volumes:
+     - ./certs/:/app/https/
     networks:
      distributed_web:
       aliases:
