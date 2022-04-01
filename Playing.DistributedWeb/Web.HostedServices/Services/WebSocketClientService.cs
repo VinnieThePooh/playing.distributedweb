@@ -196,8 +196,7 @@ namespace Web.HostedServices
 
 			//continue to measure graceful close interval
 			_stopwatch.Restart();
-			stopMessagingToken.ThrowIfCancellationRequested();
-		}
+        }
 
 		//todo: add network problems handling (retry)
 		//dispose and recreate socket or keep connection opened?
@@ -257,10 +256,8 @@ namespace Web.HostedServices
 				catch (Exception)
 				{
 					lock (lockObject)
-					{
-						_serviceState = ServiceState.Stopped;
-					}
-					//todo: Serilog here
+                        _serviceState = ServiceState.Stopped;
+                    //todo: Serilog here
 				}				
 			}			
 		}
